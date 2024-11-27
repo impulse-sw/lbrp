@@ -1,4 +1,4 @@
 startup_type: http_localhost
 server_port: 8801
 allow_oapi_access: false
-log_level: info
+log_level: debug

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cc-server-kit = { git = "https://github.com/markcda/cc-server-kit.git", branch = "feat/custom-shutdown", default-features = false, features = ["oapi", "http3", "utils", "proxy", "reqwest-msgpack"] }
+cc-server-kit = { git = "https://github.com/markcda/cc-server-kit.git", branch = "feat/custom-shutdown", default-features = false, features = ["oapi", "http3", "utils", "proxy", "reqwest-msgpack", "reqwest-http3"] }
 futures-util = { version = "0.3", default-features = false }
 notify = "6.1"
 serde = { version = "1.0", features = ["derive"] }
