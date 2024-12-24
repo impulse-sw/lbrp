@@ -10,7 +10,7 @@ pub(crate) enum LbrpMode {
   /// Модель ребёнка и родителя
   PC(LbrpPCMode),
   /// Модель братьев
-  YBOB(LbrpYBOBMode),
+  Ybob(LbrpYBOBMode),
 }
 
 #[derive(Deserialize, Serialize)]

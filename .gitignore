@@ -1,4 +1,5 @@
 /artifacts
+/certs
 /logs
 /target
 Cargo.lock

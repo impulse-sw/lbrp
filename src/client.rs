@@ -29,6 +29,7 @@ impl ModifiedReqwestClient {
     Proxy::new(upstreams, ModifiedReqwestClient::default())
   }
   
+  #[allow(clippy::wrong_self_convention)]
   pub fn as_client<U: Upstreams>(self, upstreams: U) -> Proxy<U, ModifiedReqwestClient> {
     Proxy::new(upstreams, self)
   }
@@ -78,9 +79,9 @@ impl ProxyCli for ModifiedReqwestClient {
     let proxied_request = proxied_request.map(|s| reqwest::Body::wrap_stream(s.map_ok(|s| s.into_data().unwrap_or_default())));
     let response = self
       .inner
-      .execute(proxied_request.try_into().map_err(|e| ErrorResponse::from(e))?)
+      .execute(proxied_request.try_into().map_err(|e| ErrorResponse::from(e).with_401_pub().build())?)
       .await
-      .map_err(|e| ErrorResponse::from(e))?;
+      .map_err(|e| ErrorResponse::from(e).with_401_pub().build())?;
 
     let res_headers = response.headers().clone();
     let hyper_response = hyper::Response::builder()
@@ -94,26 +95,26 @@ impl ProxyCli for ModifiedReqwestClient {
         let mut response_upgraded = response
           .upgrade()
           .await
-          .map_err(|e| ErrorResponse::from(e))?;
+          .map_err(|e| ErrorResponse::from(e).with_401_pub().build())?;
         if let Some(request_upgraded) = request_upgraded {
           tokio::spawn(async move {
             match request_upgraded.await {
               Ok(request_upgraded) => {
                 let mut request_upgraded = TokioIo::new(request_upgraded);
                 if let Err(e) = copy_bidirectional(&mut response_upgraded, &mut request_upgraded).await {
-                  tracing::error!(error = ?e, "coping between upgraded connections failed");
+                  tracing::error!(error = ?e, "copying between upgraded connections failed");
                 }
               }
               Err(e) => tracing::error!(error = ?e, "upgrade request failed"),
             }
           });
-        } else { return Err(ErrorResponse::from("request does not have an upgrade extension")); }
-      } else { return Err(ErrorResponse::from("upgrade type mismatch")); }
-      hyper_response.body(ResBody::None).map_err(|e| ErrorResponse::from(e.to_string()))?
+        } else { return Err(ErrorResponse::from("request does not have an upgrade extension").with_401_pub().build()); }
+      } else { return Err(ErrorResponse::from("upgrade type mismatch").with_401_pub().build()); }
+      hyper_response.body(ResBody::None).map_err(|e| ErrorResponse::from(e.to_string()).with_401_pub().build())?
     } else {
       hyper_response
         .body(ResBody::stream(response.bytes_stream()))
-        .map_err(|e| ErrorResponse::from(e.to_string()))?
+        .map_err(|e| ErrorResponse::from(e.to_string()).with_401_pub().build())?
     };
     *hyper_response.headers_mut() = res_headers;
     Ok(hyper_response)

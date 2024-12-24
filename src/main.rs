@@ -1,11 +1,9 @@
-#![feature(async_closure)]
-
 mod config;
 mod client;
 
 use cc_server_kit::prelude::*;
 use cc_server_kit::salvo::server::ServerHandle;
-use cc_server_kit::startup::start_with_custom_shutdown;
+use cc_server_kit::startup::{get_root_router_autoinject, start_clean};
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::broadcast;
@@ -67,9 +65,11 @@ async fn main() -> MResult<()> {
     });
     
     let mut reload_rx = reload_tx.subscribe();
-    let custom_shutdown = async move |handle: ServerHandle| {
-      if let Ok(_) = reload_rx.recv().await {
-        handle.stop_graceful(Duration::from_secs(10));
+    let custom_shutdown = move |handle: ServerHandle| {
+      async move {
+        if reload_rx.recv().await.is_ok() {
+          handle.stop_graceful(Duration::from_secs(10));
+        }
       }
     };
     
@@ -86,27 +86,37 @@ async fn main() -> MResult<()> {
       },
     };
     
-    let lbrp_router = get_root_router(&state, setup.clone()).push(get_router_from_config(&config));
+    let lbrp_router = get_root_router_autoinject(&state, setup.clone()).push(get_router_from_config(&config));
     
     tracing::debug!("\n{:?}", lbrp_router);
     
-    let (server, _handle) = start_with_custom_shutdown(
+    let (server, handle) = start_clean(
       state.clone(),
       &setup,
       lbrp_router,
-      Some(custom_shutdown),
     ).await.unwrap();
+    
+    let h1 = handle.clone();
+    let h2 = handle.clone();
+    let custom_handle = tokio::spawn(async move { custom_shutdown(h1).await });
+    let default_handle = tokio::spawn(async move { default_shutdown_signal(h2).await });
     
     tracing::info!("Server is booted.");
     
     select! {
-      _ = server => {
-        tracing::info!("Server is shutdowned.");
-      },
+      _ = server => tracing::info!("Server is shutdowned."),
+      _ = custom_handle => tracing::info!("Server is going to reload..."),
+      _ = default_handle => std::process::exit(0),
       res = watcher_handle => {
         tracing::info!("Watcher handle is stopped with result `{:?}`! Exit...", res);
         return Ok(())
       },
     }
   }
+}
+
+async fn default_shutdown_signal(handle: ServerHandle) {
+  tokio::signal::ctrl_c().await.unwrap();
+  tracing::info!("Shutdown with Ctrl+C requested.");
+  handle.stop_graceful(None);
 }

@@ -1,4 +1,7 @@
-startup_type: http_localhost
-server_port: 8801
+startup_type: quinn
+server_host: 0.0.0.0
+server_port: 443
+ssl_crt_path: certs/fullchain.pem
+ssl_key_path: certs/privkey.pem
 allow_oapi_access: false
 log_level: debug
