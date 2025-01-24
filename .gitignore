@@ -2,6 +2,6 @@
 /certs
 /logs
 /target
+.directory
 Cargo.lock
-deploy-config.json
 lbrp-config.json

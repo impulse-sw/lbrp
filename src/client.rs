@@ -1,11 +1,11 @@
-use cc_server_kit::tracing;
+use cc_server_kit::cc_utils::errors::ErrorResponse;
 use cc_server_kit::reqwest;
 use cc_server_kit::salvo;
-use cc_server_kit::utils::errors::ErrorResponse;
+use cc_server_kit::tracing;
 use futures_util::TryStreamExt;
-use hyper::{HeaderMap, StatusCode};
 use hyper::header::{CONNECTION, UPGRADE};
 use hyper::upgrade::OnUpgrade;
+use hyper::{HeaderMap, StatusCode};
 use reqwest::Client as ReqwestCli;
 use salvo::http::{ReqBody, ResBody};
 use salvo::hyper;
@@ -24,11 +24,11 @@ impl ModifiedReqwestClient {
   pub fn new(inner: ReqwestCli) -> Self {
     Self { inner }
   }
-  
+
   pub fn new_client<U: Upstreams>(upstreams: U) -> Proxy<U, ModifiedReqwestClient> {
     Proxy::new(upstreams, ModifiedReqwestClient::default())
   }
-  
+
   #[allow(clippy::wrong_self_convention)]
   pub fn as_client<U: Upstreams>(self, upstreams: U) -> Proxy<U, ModifiedReqwestClient> {
     Proxy::new(upstreams, self)
@@ -61,7 +61,7 @@ fn get_upgrade_type(headers: &HeaderMap) -> Option<&str> {
 
 impl ProxyCli for ModifiedReqwestClient {
   type Error = ErrorResponse;
-  
+
   #[tracing::instrument(skip_all, fields(http.uri = proxied_request.uri().path(), http.method = proxied_request.method().as_str()))]
   async fn execute(
     &self,
@@ -70,18 +70,35 @@ impl ProxyCli for ModifiedReqwestClient {
   ) -> Result<HyperResponse, Self::Error> {
     tracing::info!(
       r#"Redirect to "{}:{}""#,
-      proxied_request.uri().host().map(|v| v.to_string()).unwrap_or("undefined".to_string()),
-      proxied_request.uri().port().map(|v| v.to_string()).unwrap_or("undefined".to_string()),
+      proxied_request
+        .uri()
+        .host()
+        .map(|v| v.to_string())
+        .unwrap_or("undefined".to_string()),
+      proxied_request
+        .uri()
+        .port()
+        .map(|v| v.to_string())
+        .unwrap_or("undefined".to_string()),
     );
-    
+
     let request_upgrade_type = get_upgrade_type(proxied_request.headers()).map(|s| s.to_owned());
 
-    let proxied_request = proxied_request.map(|s| reqwest::Body::wrap_stream(s.map_ok(|s| s.into_data().unwrap_or_default())));
+    let proxied_request =
+      proxied_request.map(|s| reqwest::Body::wrap_stream(s.map_ok(|s| s.into_data().unwrap_or_default())));
     let response = self
       .inner
-      .execute(proxied_request.try_into().map_err(|e| ErrorResponse::from(e).with_401_pub().build())?)
+      .execute(proxied_request.try_into().map_err(|e| {
+        ErrorResponse::from(format!("Can't convert proxied request due to: {}", e))
+          .with_500_pub()
+          .build()
+      })?)
       .await
-      .map_err(|e| ErrorResponse::from(e).with_401_pub().build())?;
+      .map_err(|e| {
+        ErrorResponse::from(format!("Can't execute request due to: {}", e))
+          .with_404_pub()
+          .build()
+      })?;
 
     let res_headers = response.headers().clone();
     let hyper_response = hyper::Response::builder()
@@ -92,10 +109,11 @@ impl ProxyCli for ModifiedReqwestClient {
       let response_upgrade_type = get_upgrade_type(response.headers());
 
       if request_upgrade_type == response_upgrade_type.map(|s| s.to_lowercase()) {
-        let mut response_upgraded = response
-          .upgrade()
-          .await
-          .map_err(|e| ErrorResponse::from(e).with_401_pub().build())?;
+        let mut response_upgraded = response.upgrade().await.map_err(|e| {
+          ErrorResponse::from(format!("Can't upgrade response due to: {}", e))
+            .with_500_pub()
+            .build()
+        })?;
         if let Some(request_upgraded) = request_upgraded {
           tokio::spawn(async move {
             match request_upgraded.await {
@@ -108,15 +126,42 @@ impl ProxyCli for ModifiedReqwestClient {
               Err(e) => tracing::error!(error = ?e, "upgrade request failed"),
             }
           });
-        } else { return Err(ErrorResponse::from("request does not have an upgrade extension").with_401_pub().build()); }
-      } else { return Err(ErrorResponse::from("upgrade type mismatch").with_401_pub().build()); }
-      hyper_response.body(ResBody::None).map_err(|e| ErrorResponse::from(e.to_string()).with_401_pub().build())?
+        } else {
+          return Err(
+            ErrorResponse::from("request does not have an upgrade extension")
+              .with_500_pub()
+              .build(),
+          );
+        }
+      } else {
+        return Err(ErrorResponse::from("upgrade type mismatch").with_500_pub().build());
+      }
+      hyper_response.body(ResBody::None).map_err(|e| {
+        ErrorResponse::from(format!("Can't set document body due to: {}", e))
+          .with_500_pub()
+          .build()
+      })?
     } else {
       hyper_response
         .body(ResBody::stream(response.bytes_stream()))
-        .map_err(|e| ErrorResponse::from(e.to_string()).with_401_pub().build())?
+        .map_err(|e| {
+          ErrorResponse::from(format!("Can't set document body due to: {}", e))
+            .with_500_pub()
+            .build()
+        })?
     };
     *hyper_response.headers_mut() = res_headers;
+
+    #[cfg(feature = "err-handler")]
+    if hyper_response.status().is_client_error() || hyper_response.status().is_server_error() {
+      return Err(ErrorResponse {
+        status_code: Some(hyper_response.status()),
+        error_text: String::from("Got an error from reverse proxy's server."),
+        public_error: true,
+        original_text: Some(format!("Got an error `{}`", hyper_response.status().as_u16())),
+      });
+    }
+
     Ok(hyper_response)
   }
 }
