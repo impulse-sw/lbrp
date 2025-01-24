@@ -78,6 +78,8 @@ impl CommonService {
 
     let child = Command::new(startup_cmd)
       .current_dir(working_dir)
+      .stdout(std::process::Stdio::piped())
+      .stderr(std::process::Stdio::piped())
       .spawn()
       .map_err(|e| ErrorResponse::from(e).with_500_pub().build())?;
     Ok(child)
