@@ -1,5 +1,5 @@
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
-#![feature(let_chains)]
+#![feature(let_chains, string_from_utf8_lossy_owned)]
 
 mod client;
 mod config;
@@ -19,7 +19,7 @@ use tokio::sync::broadcast;
 use crate::client::ModifiedReqwestClient;
 use crate::config::{config_watcher, LbrpConfig, Service};
 #[cfg(feature = "err-handler")]
-use error_handling::{error_files_handler, error_handler, error_index_handler, ERR_HANDLER};
+use error_handling::{error_files_handler, error_handler, error_index_handler, proxied_error_handler, ERR_HANDLER};
 
 #[derive(Default, Clone)]
 struct Setup {
@@ -56,6 +56,15 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
       .push(Router::new().path("/oops").get(error_index_handler));
   }
 
+  #[cfg(feature = "err-handler")]
+  if let Some(Service::ErrorHandler(err_handler)) =
+    config.services.iter().find(|s| matches!(s, Service::ErrorHandler(_)))
+  {
+    for file in &err_handler.static_files {
+      router = router.push(Router::new().path(format!("/{}", file)).get(error_files_handler));
+    }
+  }
+
   for service in &config.services {
     #[allow(irrefutable_let_patterns)]
     if let Service::CommonService(service) = service {
@@ -63,31 +72,16 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
         children.push(service.startup().unwrap());
       }
 
-      router = router.push(
-        Router::new()
-          .host(service.from.clone())
-          .path("{**rest}")
-          .goal({
-            #[cfg(feature = "err-handler")]
-            { ModifiedReqwestClient::new_client(service.to.clone()).hoop(error_handler) }
-            #[cfg(not(feature = "err-handler"))]
-            { ModifiedReqwestClient::new_client(service.to.clone()) }
-          }),
-      )
-    }
-
-    #[cfg(feature = "err-handler")]
-    if let Service::ErrorHandler(err_handler) = service {
-      let mut eh_router = Router::new();
-      for file in &err_handler.static_files {
-        let path = err_handler.dist_dir.join(file);
-        eh_router = eh_router.push(
-          Router::new()
-            .path(format!("/{}", path.to_str().unwrap()))
-            .get(error_files_handler),
-        );
-      }
-      router = router.push(eh_router);
+      router = router.push(Router::new().host(service.from.clone()).path("{**rest}").goal({
+        #[cfg(feature = "err-handler")]
+        {
+          ModifiedReqwestClient::new_client(service.to.clone()).hoop(proxied_error_handler)
+        }
+        #[cfg(not(feature = "err-handler"))]
+        {
+          ModifiedReqwestClient::new_client(service.to.clone())
+        }
+      }))
     }
   }
 
