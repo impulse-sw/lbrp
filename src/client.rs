@@ -151,17 +151,6 @@ impl ProxyCli for ModifiedReqwestClient {
         })?
     };
     *hyper_response.headers_mut() = res_headers;
-
-    #[cfg(feature = "err-handler")]
-    if hyper_response.status().is_client_error() || hyper_response.status().is_server_error() {
-      return Err(ErrorResponse {
-        status_code: Some(hyper_response.status()),
-        error_text: String::from("Got an error from reverse proxy's server."),
-        public_error: true,
-        original_text: Some(format!("Got an error `{}`", hyper_response.status().as_u16())),
-      });
-    }
-
     Ok(hyper_response)
   }
 }

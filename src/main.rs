@@ -10,6 +10,7 @@ use cc_server_kit::cc_utils::prelude::*;
 use cc_server_kit::prelude::*;
 use cc_server_kit::salvo::server::ServerHandle;
 use cc_server_kit::startup::{get_root_router_autoinject, start_with_service};
+use salvo::Handler;
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::broadcast;
@@ -50,7 +51,8 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
       .push(Router::new().path("/404").get(error_index_handler))
       .push(Router::new().path("/405").get(error_index_handler))
       .push(Router::new().path("/423").get(error_index_handler))
-      .push(Router::new().path("/500").get(error_index_handler));
+      .push(Router::new().path("/500").get(error_index_handler))
+      .push(Router::new().path("/oops").get(error_index_handler));
   }
 
   for service in &config.services {
@@ -63,7 +65,7 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
         Router::new()
           .host(service.from.clone())
           .path("{**rest}")
-          .goal(ModifiedReqwestClient::new_client(service.to.clone())),
+          .goal(ModifiedReqwestClient::new_client(service.to.clone()).hoop(error_handler)),
       )
     }
 

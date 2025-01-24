@@ -1,7 +1,6 @@
 use cc_server_kit::prelude::*;
 use cc_utils::prelude::*;
-use salvo::{prelude::Redirect, Response};
-use tracing::warn;
+use salvo::{FlowCtrl, Response};
 
 use crate::config::ErrorHandler;
 
@@ -37,19 +36,14 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
 }
 
 #[handler]
-pub(crate) async fn error_handler(res: &mut Response) {
+pub(crate) async fn error_handler(res: &mut Response, ctrl: &mut FlowCtrl) {
   let guard = ERR_HANDLER.as_ref().lock().await;
-  if let Some(handler) = guard.as_ref()
+  if res.status_code.is_none_or(|s| s != StatusCode::OK)
+    && let Some(handler) = guard.as_ref()
     && let Ok(data) = tokio::fs::read_to_string(handler.dist_dir.join("index.html")).await
   {
-    // res.status_code(StatusCode::NOT_FOUND);
+    res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
     res.render(salvo::writing::Text::Html(data));
-  } else {
-    res.render(salvo::writing::Text::Plain("Not found!"));
+    ctrl.skip_rest();
   }
-
-  // res.render(Redirect::found(&format!(
-  //   "/{}",
-  //   res.status_code.unwrap_or(StatusCode::NOT_FOUND).as_u16()
-  // )))
 }
