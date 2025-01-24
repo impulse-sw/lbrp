@@ -91,6 +91,7 @@ pub(crate) struct LbrpConfig {
 }
 
 impl LbrpConfig {
+  #[cfg(feature = "err-handler")]
   pub(crate) fn validate(&self) -> MResult<()> {
     #[cfg(feature = "err-handler")]
     if !self.services.iter().any(|s| matches!(s, Service::ErrorHandler(_))) {
@@ -105,6 +106,7 @@ impl LbrpConfig {
       .iter()
       .filter_map(|s| match s {
         Service::CommonService(service) => Some(service),
+        #[allow(unreachable_patterns)]
         _ => None,
       })
       .find(|s| !s.to.starts_with("http://") && !s.to.starts_with("https://"))
@@ -112,7 +114,7 @@ impl LbrpConfig {
       return Err(
         ErrorResponse::from(format!(
           "You aren't specified what schema (`http` or `https`) LBRP must use with `{}`",
-          invalid.service_name
+          invalid.to
         ))
         .with_500_pub()
         .build(),

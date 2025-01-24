@@ -1,4 +1,4 @@
-// #![deny(warnings, clippy::todo, clippy::unimplemented)]
+#![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![feature(let_chains)]
 
 mod client;
@@ -10,6 +10,7 @@ use cc_server_kit::cc_utils::prelude::*;
 use cc_server_kit::prelude::*;
 use cc_server_kit::salvo::server::ServerHandle;
 use cc_server_kit::startup::{get_root_router_autoinject, start_with_service};
+#[cfg(feature = "err-handler")]
 use salvo::Handler;
 use std::time::Duration;
 use tokio::select;
@@ -56,6 +57,7 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
   }
 
   for service in &config.services {
+    #[allow(irrefutable_let_patterns)]
     if let Service::CommonService(service) = service {
       if service.should_startup() {
         children.push(service.startup().unwrap());
@@ -65,7 +67,12 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
         Router::new()
           .host(service.from.clone())
           .path("{**rest}")
-          .goal(ModifiedReqwestClient::new_client(service.to.clone()).hoop(error_handler)),
+          .goal({
+            #[cfg(feature = "err-handler")]
+            { ModifiedReqwestClient::new_client(service.to.clone()).hoop(error_handler) }
+            #[cfg(not(feature = "err-handler"))]
+            { ModifiedReqwestClient::new_client(service.to.clone()) }
+          }),
       )
     }
 
@@ -84,7 +91,6 @@ fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::
     }
   }
 
-  router = router.push(Router::new().path("{**rest_path}").get(error_handler));
   router
 }
 
