@@ -1,6 +1,7 @@
 /artifacts
 /certs
 /logs
+/public
 /target
 .directory
 Cargo.lock

@@ -4,4 +4,5 @@ server_port: 443
 ssl_crt_path: certs/fullchain.pem
 ssl_key_path: certs/privkey.pem
 allow_oapi_access: false
-log_level: debug
+log_level: info
+log_file_level: debug

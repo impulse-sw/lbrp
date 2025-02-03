@@ -53,54 +53,6 @@
           }
         },
         {
-          "title": "Lint with `c3a`",
-          "desc": "",
-          "info": "cargo-clippy@0.1.0",
-          "tags": [
-            "cargo",
-            "clippy"
-          ],
-          "action": {
-            "PreBuild": {
-              "supported_langs": [
-                "Rust"
-              ],
-              "commands": [
-                {
-                  "bash_c": "RUSTFLAGS='--cfg reqwest_unstable' cargo clippy --no-default-features --features=c3a",
-                  "ignore_fails": false,
-                  "show_success_output": true,
-                  "show_bash_c": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "title": "Lint with `err-handler`",
-          "desc": "",
-          "info": "cargo-clippy@0.1.0",
-          "tags": [
-            "cargo",
-            "clippy"
-          ],
-          "action": {
-            "PreBuild": {
-              "supported_langs": [
-                "Rust"
-              ],
-              "commands": [
-                {
-                  "bash_c": "RUSTFLAGS='--cfg reqwest_unstable' cargo clippy --no-default-features --features=err-handler",
-                  "ignore_fails": false,
-                  "show_success_output": true,
-                  "show_bash_c": true
-                }
-              ]
-            }
-          }
-        },
-        {
           "title": "Lint with all features",
           "desc": "",
           "info": "cargo-clippy@0.1.0",
@@ -264,7 +216,7 @@
       "default": true
     },
     {
-      "title": "run",
+      "title": "deploy",
       "desc": "Got from `LBRP Pipeline`.",
       "info": "lbrp@0.1.0",
       "tags": [
@@ -429,5 +381,6 @@
       "lbrp"
     ]
   ],
+  "containered_options": null,
   "version": 2
 }

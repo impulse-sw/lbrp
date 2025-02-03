@@ -1,25 +1,25 @@
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
-#![feature(let_chains, string_from_utf8_lossy_owned)]
+#![feature(let_chains, string_from_utf8_lossy_owned, stmt_expr_attributes)]
 
+#[cfg(feature = "c3a")]
+mod c3a;
 mod client;
 mod config;
-#[cfg(feature = "err-handler")]
 mod error_handling;
+mod router;
+mod r#static;
 
 use cc_server_kit::cc_utils::prelude::*;
 use cc_server_kit::prelude::*;
 use cc_server_kit::salvo::server::ServerHandle;
 use cc_server_kit::startup::{get_root_router_autoinject, start_with_service};
-#[cfg(feature = "err-handler")]
-use salvo::Handler;
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::broadcast;
 
-use crate::client::ModifiedReqwestClient;
 use crate::config::{config_watcher, LbrpConfig, Service};
-#[cfg(feature = "err-handler")]
-use error_handling::{error_files_handler, error_handler, error_index_handler, proxied_error_handler, ERR_HANDLER};
+use crate::error_handling::{error_handler, ERR_HANDLER};
+use crate::router::get_router_from_config;
 
 #[derive(Default, Clone)]
 struct Setup {
@@ -33,59 +33,6 @@ impl GenericSetup for Setup {
   fn set_generic_values(&mut self, generic_values: GenericValues) {
     self.generic_values = generic_values;
   }
-}
-
-fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::Child>) -> Router {
-  for child in children.iter_mut() {
-    child.kill().unwrap();
-  }
-  children.clear();
-
-  let mut router = Router::new();
-
-  #[cfg(feature = "err-handler")]
-  {
-    router = router
-      .push(Router::new().path("/400").get(error_index_handler))
-      .push(Router::new().path("/401").get(error_index_handler))
-      .push(Router::new().path("/403").get(error_index_handler))
-      .push(Router::new().path("/404").get(error_index_handler))
-      .push(Router::new().path("/405").get(error_index_handler))
-      .push(Router::new().path("/423").get(error_index_handler))
-      .push(Router::new().path("/500").get(error_index_handler))
-      .push(Router::new().path("/oops").get(error_index_handler));
-  }
-
-  #[cfg(feature = "err-handler")]
-  if let Some(Service::ErrorHandler(err_handler)) =
-    config.services.iter().find(|s| matches!(s, Service::ErrorHandler(_)))
-  {
-    for file in &err_handler.static_files {
-      router = router.push(Router::new().path(format!("/{}", file)).get(error_files_handler));
-    }
-  }
-
-  for service in &config.services {
-    #[allow(irrefutable_let_patterns)]
-    if let Service::CommonService(service) = service {
-      if service.should_startup() {
-        children.push(service.startup().unwrap());
-      }
-
-      router = router.push(Router::new().host(service.from.clone()).path("{**rest}").goal({
-        #[cfg(feature = "err-handler")]
-        {
-          ModifiedReqwestClient::new_client(service.to.clone()).hoop(proxied_error_handler)
-        }
-        #[cfg(not(feature = "err-handler"))]
-        {
-          ModifiedReqwestClient::new_client(service.to.clone())
-        }
-      }))
-    }
-  }
-
-  router
 }
 
 #[tokio::main(flavor = "multi_thread")]
@@ -115,7 +62,6 @@ async fn main() -> MResult<()> {
     let reader = std::io::BufReader::new(file);
     let config = match serde_json::from_reader::<_, LbrpConfig>(reader) {
       Ok(config) => {
-        #[cfg(feature = "err-handler")]
         if let Err(e) = config.validate() {
           tracing::info!("Can't get the config due to: {}!", e);
           std::process::exit(1);
@@ -131,14 +77,12 @@ async fn main() -> MResult<()> {
     let lbrp_router =
       get_root_router_autoinject(&state, setup.clone()).push(get_router_from_config(&config, &mut children));
 
-    tracing::debug!("\n{:?}", lbrp_router);
+    tracing::info!("Router:\n{:?}", lbrp_router);
 
-    #[allow(unused_mut)]
     let mut lbrp_service = salvo::Service::new(lbrp_router);
 
-    #[cfg(feature = "err-handler")]
-    if let Some(err_handler) = config.services.iter().find(|s| matches!(s, Service::ErrorHandler(_)))
-      && let Service::ErrorHandler(err_handler) = err_handler
+    if let Some(Service::ErrorHandler(err_handler)) =
+      config.services.iter().find(|s| matches!(s, Service::ErrorHandler(_)))
     {
       let mut guard = ERR_HANDLER.as_ref().lock().await;
       *guard = Some(err_handler.clone());

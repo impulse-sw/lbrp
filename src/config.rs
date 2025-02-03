@@ -1,5 +1,6 @@
 use cc_server_kit::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -33,10 +34,11 @@ pub(crate) enum LbrpYBOBMode {
 
 #[derive(Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum Service {
-  #[cfg(feature = "err-handler")]
   ErrorHandler(ErrorHandler),
   CommonService(CommonService),
+  CommonStatic(CommonStatic),
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -55,6 +57,13 @@ pub(crate) struct CommonService {
   pub(crate) working_dir: Option<PathBuf>,
   pub(crate) from: String,
   pub(crate) to: String,
+  pub(crate) cors_domains: Option<Vec<String>>,
+  pub(crate) skip_err_handling: Option<bool>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub(crate) struct CommonStatic {
+  pub(crate) static_routes: HashMap<String, PathBuf>,
 }
 
 impl CommonService {
@@ -93,22 +102,12 @@ pub(crate) struct LbrpConfig {
 }
 
 impl LbrpConfig {
-  #[cfg(feature = "err-handler")]
   pub(crate) fn validate(&self) -> MResult<()> {
-    #[cfg(feature = "err-handler")]
-    if !self.services.iter().any(|s| matches!(s, Service::ErrorHandler(_))) {
-      return Err(
-        ErrorResponse::from("There is no error handler service for LBRP installed")
-          .with_500_pub()
-          .build(),
-      );
-    }
     if let Some(invalid) = self
       .services
       .iter()
       .filter_map(|s| match s {
         Service::CommonService(service) => Some(service),
-        #[allow(unreachable_patterns)]
         _ => None,
       })
       .find(|s| !s.to.starts_with("http://") && !s.to.starts_with("https://"))
@@ -133,9 +132,7 @@ pub(crate) async fn config_watcher<P: AsRef<std::path::Path>>(
   use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
 
   let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-
   let mut watcher = RecommendedWatcher::new(move |res| tx.blocking_send(res).unwrap(), Config::default())?;
-
   watcher.watch(config_path.as_ref(), RecursiveMode::NonRecursive)?;
 
   while let Some(res) = rx.recv().await {
