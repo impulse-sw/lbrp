@@ -43,22 +43,16 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
 }
 
 #[handler]
-pub(crate) async fn error_handler(res: &mut Response, ctrl: &mut FlowCtrl) {
+pub(crate) async fn error_handler(req: &mut Request, res: &mut Response, ctrl: &mut FlowCtrl) {
   let guard = ERR_HANDLER.as_ref().lock().await;
   if res.status_code.is_none_or(|s| s.as_u16() >= 400u16)
     && let Some(handler) = guard.as_ref()
     && let Ok(data) = tokio::fs::read_to_string(handler.dist_dir.join("index.html")).await
   {
-    let body = res.body.take();
-    let body = match body {
-      ResBody::None => "None".to_string(),
-      ResBody::Once(bytes) => String::from_utf8_lossy_owned(bytes.to_vec()),
-      _ => "<some>".to_string(),
-    };
     tracing::warn!(
-      "Got an error from proxied request: status code {}, error body: `{}`",
-      res.status_code.unwrap_or(StatusCode::NOT_FOUND),
-      body
+      "From proxied request: requested URI: `{}`, status code {:?}",
+      req.uri(),
+      res.status_code,
     );
     res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
     res.render(salvo::writing::Text::Html(data));
@@ -82,23 +76,6 @@ pub(crate) async fn proxied_error_handler(
       .await
       .is_ok_and(|exists| exists)
   {
-    let body = res.take_body();
-    let body = match body {
-      ResBody::None => "None".to_string(),
-      ResBody::Once(bytes) => String::from_utf8_lossy_owned(bytes.to_vec()),
-      ResBody::Chunks(_) => "<chunk>".to_string(),
-      ResBody::Hyper(_) => "<hyper>".to_string(),
-      ResBody::Boxed(_) => "<boxed>".to_string(),
-      ResBody::Stream(_) => "<stream>".to_string(),
-      ResBody::Channel(_) => "<channel>".to_string(),
-      ResBody::Error(_) => "<error>".to_string(),
-      _ => "<idk>".to_string(),
-    };
-    tracing::warn!(
-      "Got an error from proxied request: status code {:?}, error body: `{}`",
-      res.status_code,
-      body
-    );
     res.headers_mut().remove(salvo::http::header::CONTENT_LENGTH);
     res.headers_mut().remove(salvo::http::header::CONTENT_TYPE);
     *res.body_mut() = ResBody::None;
