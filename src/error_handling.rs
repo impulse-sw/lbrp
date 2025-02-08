@@ -50,7 +50,8 @@ pub(crate) async fn error_handler(req: &mut Request, res: &mut Response, ctrl: &
     && let Ok(data) = tokio::fs::read_to_string(handler.dist_dir.join("index.html")).await
   {
     tracing::warn!(
-      "From proxied request: requested URI: `{}`, status code {:?}",
+      "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
+      req.remote_addr(),
       req.uri(),
       res.status_code,
     );
