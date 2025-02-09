@@ -26,6 +26,7 @@ use crate::router::get_router_from_config;
 struct Setup {
   #[serde(flatten)]
   generic_values: GenericValues,
+  config_file: Option<String>,
 }
 
 impl GenericSetup for Setup {
@@ -47,8 +48,10 @@ async fn main() -> MResult<()> {
 
   loop {
     let watcher_tx = reload_tx.clone();
+
+    let config_file = setup.config_file.as_deref().unwrap_or("lbrp-config.json").to_owned();
     let watcher_handle = tokio::spawn(async move {
-      if let Err(e) = config_watcher("lbrp-config.json", watcher_tx).await {
+      if let Err(e) = config_watcher(config_file, watcher_tx).await {
         eprintln!("Config watcher error: {:?}", e);
       }
     });
@@ -61,7 +64,8 @@ async fn main() -> MResult<()> {
       }
     };
 
-    let file = std::fs::File::open("lbrp-config.json").map_err(|_| "Can't open `lbrp-config.json`!")?;
+    let file = std::fs::File::open(setup.config_file.as_deref().unwrap_or("lbrp-config.json"))
+      .map_err(|_| "Can't open `lbrp-config.json`!")?;
     let reader = std::io::BufReader::new(file);
     let config = match serde_json::from_reader::<_, LbrpConfig>(reader) {
       Ok(config) => {
