@@ -13,6 +13,7 @@ use cc_server_kit::cc_utils::prelude::*;
 use cc_server_kit::prelude::*;
 use cc_server_kit::salvo::server::ServerHandle;
 use cc_server_kit::startup::{get_root_router_autoinject, start_force_https_redirect, start_with_service};
+use serde::Deserialize;
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::broadcast;
@@ -21,8 +22,9 @@ use crate::config::{config_watcher, LbrpConfig, Service};
 use crate::error_handling::{error_handler, ERR_HANDLER};
 use crate::router::get_router_from_config;
 
-#[derive(Default, Clone)]
+#[derive(Deserialize, Default, Clone)]
 struct Setup {
+  #[serde(flatten)]
   generic_values: GenericValues,
 }
 
@@ -30,8 +32,8 @@ impl GenericSetup for Setup {
   fn generic_values(&self) -> &GenericValues {
     &self.generic_values
   }
-  fn set_generic_values(&mut self, generic_values: GenericValues) {
-    self.generic_values = generic_values;
+  fn generic_values_mut(&mut self) -> &mut GenericValues {
+    &mut self.generic_values
   }
 }
 
