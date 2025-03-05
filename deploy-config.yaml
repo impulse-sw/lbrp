@@ -1,0 +1,239 @@
+project_name: lbrp
+version: 4
+langs:
+  - rust
+targets:
+  - arch: x86_64
+    os: linux
+    os_derivative: any
+    os_version:
+      type: no
+cache_files:
+  - .git
+  - Cargo.lock
+  - target
+artifacts:
+  - target/release/lbrp
+variables: []
+place_artifacts_into_project_root:
+  - from: target/release/lbrp
+    to: lbrp
+pipelines:
+  - title: lint
+    desc: Got from `LBRP Pipeline`.
+    info: lbrp@0.1.0
+    tags:
+      - cargo
+      - upx
+      - reqwest
+    default: false
+    exclusive_exec_tag: lints
+    actions:
+      - title: Lint without features
+        desc: ""
+        info: cargo-clippy@0.1.0
+        tags:
+          - cargo
+          - clippy
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy --no-default-features
+              ignore_fails: false
+              show_success_output: true
+              show_bash_c: true
+      - title: Lint with all features
+        desc: ""
+        info: cargo-clippy@0.1.0
+        tags:
+          - cargo
+          - clippy
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
+              ignore_fails: false
+              show_success_output: true
+              show_bash_c: true
+  - title: build
+    desc: Got from `LBRP Pipeline`.
+    info: lbrp@0.1.0
+    tags:
+      - cargo
+      - upx
+      - reqwest
+    default: true
+    actions:
+      - title: Lint
+        desc: ""
+        info: cargo-clippy@0.1.0
+        tags:
+          - cargo
+          - clippy
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
+              ignore_fails: false
+              show_success_output: true
+              show_bash_c: true
+      - title: Format
+        desc: Format `.rs` files
+        info: cargo-fmt@0.1.0
+        tags:
+          - rust
+          - cargo
+          - fmt
+        exec_in_project_dir: true
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
+              ignore_fails: false
+              show_success_output: false
+              show_bash_c: true
+              only_when_fresh: false
+      - title: Build
+        desc: Got from `Cargo Build (Release)`. Build the Rust project with Cargo default settings in release mode
+        info: cargo-rel@0.1
+        tags:
+          - rust
+          - cargo
+        action:
+          type: build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo build --release
+              ignore_fails: false
+              show_success_output: false
+              show_bash_c: true
+      - title: Compress
+        desc: Got from `UPX Compress`.
+        info: upx-compress@0.1.0
+        tags:
+          - upx
+        action:
+          type: post_build
+          supported_langs:
+            - any
+          commands:
+            - bash_c: upx <af>
+              ignore_fails: false
+              show_success_output: false
+              show_bash_c: false
+              placeholders:
+                - <af>
+              replacements:
+                - group:
+                    - from: <af>
+                      to:
+                        title: target/release/lbrp
+                        is_secret: false
+                        value:
+                          type: plain
+                          value: target/release/lbrp
+  - title: deploy
+    desc: Got from `LBRP Pipeline`.
+    info: lbrp@0.1.0
+    tags:
+      - cargo
+      - upx
+      - reqwest
+    default: false
+    actions:
+      - title: Lint
+        desc: ""
+        info: cargo-clippy@0.1.0
+        tags:
+          - cargo
+          - clippy
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
+              ignore_fails: false
+              show_success_output: true
+              show_bash_c: true
+      - title: Format
+        desc: Format `.rs` files
+        info: cargo-fmt@0.1.0
+        tags:
+          - rust
+          - cargo
+          - fmt
+        exec_in_project_dir: true
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
+              ignore_fails: false
+              show_success_output: false
+              show_bash_c: true
+              only_when_fresh: false
+      - title: Build
+        desc: Got from `Cargo Build (Release)`. Build the Rust project with Cargo default settings in release mode
+        info: cargo-rel@0.1
+        tags:
+          - rust
+          - cargo
+        action:
+          type: build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo build --release
+              ignore_fails: false
+              show_success_output: false
+              show_bash_c: true
+      - title: Compress
+        desc: Got from `UPX Compress`.
+        info: upx-compress@0.1.0
+        tags:
+          - upx
+        action:
+          type: post_build
+          supported_langs:
+            - any
+          commands:
+            - bash_c: upx <af>
+              ignore_fails: false
+              show_success_output: false
+              show_bash_c: false
+              placeholders:
+                - <af>
+              replacements:
+                - group:
+                    - from: <af>
+                      to:
+                        title: target/release/lbrp
+                        is_secret: false
+                        value:
+                          type: plain
+                          value: target/release/lbrp
+      - title: Run
+        desc: ""
+        info: run-lbrp@0.1.0
+        tags:
+          - lbrp
+        exec_in_project_dir: false
+        action:
+          type: observe
+          command:
+            bash_c: sudo ./target/release/lbrp
+            ignore_fails: true
+            show_success_output: true
+            show_bash_c: false
+            only_when_fresh: false
