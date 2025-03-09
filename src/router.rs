@@ -1,9 +1,9 @@
 use cc_server_kit::prelude::*;
 use salvo::Handler;
 
-use crate::client::ModifiedReqwestClient;
 use crate::config::{LbrpConfig, Service};
 use crate::error_handling::{error_files_handler, error_index_handler, proxied_error_handler};
+use crate::proxy_client::ModifiedReqwestClient;
 use crate::r#static::StaticRoute;
 
 pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::Child>) -> Router {

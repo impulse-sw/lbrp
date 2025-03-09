@@ -18,8 +18,7 @@ impl StaticRoute {
 impl StaticRoute {
   #[tracing::instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
   async fn handle(&self, req: &mut Request) -> MResult<File> {
-    let path = self.path.to_string_lossy().to_string();
     let filename = self.path.file_name().unwrap().to_string_lossy().to_string();
-    file_upload!(path, filename)
+    file_upload!(self.path.clone(), filename)
   }
 }

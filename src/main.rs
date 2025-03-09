@@ -3,9 +3,9 @@
 
 #[cfg(feature = "c3a")]
 mod c3a;
-mod client;
 mod config;
 mod error_handling;
+mod proxy_client;
 mod router;
 mod r#static;
 

@@ -36,7 +36,7 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
       handler.dist_dir,
       filename
     );
-    file_upload!(path.as_path().to_string_lossy().to_string(), filename)
+    file_upload!(path, filename)
   } else {
     Err(ErrorResponse::from("Not found!").with_404_pub().build())
   }
