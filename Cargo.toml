@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.5.9", default-features = false, features = ["cors", "oapi", "http3", "cc-utils", "proxy", "force-https", "reqwest-msgpack", "reqwest-http3", "log-without-filtering"] }
+cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.5.11-1", default-features = false, features = ["cors", "oapi", "http3", "cc-utils", "proxy", "force-https", "reqwest-msgpack", "reqwest-http3", "log-without-filtering"] }
 c3a-worker = { path = "/home/titoffklim/Documents/Творческая Корпорация/02. CRB - Cerber Cyber Agency (IT)/Проекты/43. C3A (центр сертификации и авторизации)/c3a/c3a-worker", optional = true }
 futures-util = { version = "0.3", default-features = false }
 notify = "6.1"

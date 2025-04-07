@@ -103,7 +103,7 @@ pipelines:
               only_when_fresh: false
       - title: Build
         desc: Got from `Cargo Build (Release)`. Build the Rust project with Cargo default settings in release mode
-        info: cargo-rel@0.1
+        info: cargo-rel@0.1.0
         tags:
           - rust
           - cargo
@@ -185,7 +185,7 @@ pipelines:
               only_when_fresh: false
       - title: Build
         desc: Got from `Cargo Build (Release)`. Build the Rust project with Cargo default settings in release mode
-        info: cargo-rel@0.1
+        info: cargo-rel@0.1.0
         tags:
           - rust
           - cargo
