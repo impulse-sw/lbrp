@@ -55,6 +55,7 @@ pub(crate) struct CommonService {
   pub(crate) require_subdomain_access_token: Option<bool>,
   pub(crate) startup_cmd: Option<PathBuf>,
   pub(crate) working_dir: Option<PathBuf>,
+  pub(crate) wait_after: Option<u64>,
   pub(crate) from: String,
   pub(crate) to: String,
   pub(crate) cors_domains: Option<Vec<String>>,
@@ -91,6 +92,11 @@ impl CommonService {
       .stderr(std::process::Stdio::piped())
       .spawn()
       .map_err(|e| ErrorResponse::from(e).with_500_pub().build())?;
+
+    if let Some(wait_after) = self.wait_after {
+      std::thread::sleep(std::time::Duration::from_secs(wait_after));
+    }
+
     Ok(child)
   }
 }
