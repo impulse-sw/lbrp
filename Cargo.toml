@@ -1,11 +1,11 @@
 [package]
 name = "lbrp"
-version = "0.1.0"
-edition = "2021"
+version = "0.1.1"
+edition = "2024"
 
 [dependencies]
-cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.5.13", default-features = false, features = ["cors", "oapi", "http3", "cc-utils", "proxy", "force-https", "reqwest-msgpack", "reqwest-http3", "log-without-filtering"] }
-c3a-worker = { git = "ssh://git@github.com/impulse-sw/c3a.git", tag = "0.1.0-alpha-1-wip8", optional = true }
+cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.5.17", default-features = false, features = ["cors", "oapi", "http3", "cc-utils", "proxy", "force-https", "reqwest-msgpack", "reqwest-http3", "log-without-filtering"] }
+c3a-worker = { git = "ssh://git@github.com/impulse-sw/c3a.git", tag = "0.1.0-beta-8", optional = true }
 futures-util = { version = "0.3", default-features = false }
 notify = "6.1"
 serde = { version = "1.0", features = ["derive"] }

@@ -58,12 +58,14 @@ pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::proce
           && !service.skip_err_handling.is_some_and(|v| v)
         {
           Router::with_path("{**rest}").goal(
-            ModifiedReqwestClient::new_client(service.to.clone(), &service.cors_domains).hoop(proxied_error_handler),
+            ModifiedReqwestClient::new_client(service.to.clone(), &service.cors_domains, &config.cors_opts)
+              .hoop(proxied_error_handler),
           )
         } else {
           Router::with_path("{**rest}").goal(ModifiedReqwestClient::new_client(
             service.to.clone(),
             &service.cors_domains,
+            &config.cors_opts,
           ))
         }
       });

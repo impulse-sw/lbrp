@@ -19,8 +19,8 @@ use std::time::Duration;
 use tokio::select;
 use tokio::sync::broadcast;
 
-use crate::config::{config_watcher, LbrpConfig, Service};
-use crate::error_handling::{error_handler, ERR_HANDLER};
+use crate::config::{LbrpConfig, Service, config_watcher};
+use crate::error_handling::{ERR_HANDLER, error_handler};
 use crate::router::get_router_from_config;
 
 #[derive(Deserialize, Default, Clone)]

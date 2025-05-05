@@ -1,6 +1,6 @@
 use cc_server_kit::prelude::*;
 use cc_utils::prelude::*;
-use salvo::{http::ResBody, FlowCtrl, Response};
+use salvo::{FlowCtrl, Response, http::ResBody};
 
 use crate::config::ErrorHandler;
 

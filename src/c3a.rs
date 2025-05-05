@@ -1,8 +1,8 @@
 use cc_server_kit::prelude::*;
 use salvo::{
+  Request, Response,
   http::cookie::{CookieBuilder, Expiration, SameSite},
   writing::Redirect,
-  Request, Response,
 };
 
 #[handler]

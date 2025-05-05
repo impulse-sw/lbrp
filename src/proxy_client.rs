@@ -14,23 +14,30 @@ use salvo::proxy::{Client as ProxyCli, Proxy, Upstreams};
 use salvo::rt::tokio::TokioIo;
 use tokio::io::copy_bidirectional;
 
+use crate::config::CorsOpts;
+
 #[derive(Clone, Debug)]
 pub(crate) struct ModifiedReqwestClient {
   inner: ReqwestCli,
   cors: Option<Vec<String>>,
+  cors_opts: CorsOpts,
 }
 
 #[allow(dead_code)]
 impl ModifiedReqwestClient {
   /// Create a new `ModifiedReqwestClient` with the given [`reqwest::Client`].
-  pub fn new(inner: ReqwestCli, cors: Option<Vec<String>>) -> Self {
-    Self { inner, cors }
+  pub fn new(inner: ReqwestCli, cors: Option<Vec<String>>, cors_opts: CorsOpts) -> Self {
+    Self { inner, cors, cors_opts }
   }
 
-  pub fn new_client<U: Upstreams>(upstreams: U, cors: &Option<Vec<String>>) -> Proxy<U, ModifiedReqwestClient> {
+  pub fn new_client<U: Upstreams>(
+    upstreams: U,
+    cors: &Option<Vec<String>>,
+    cors_opts: &CorsOpts,
+  ) -> Proxy<U, ModifiedReqwestClient> {
     Proxy::new(
       upstreams,
-      ModifiedReqwestClient::new(ReqwestCli::default(), cors.to_owned()),
+      ModifiedReqwestClient::new(ReqwestCli::default(), cors.to_owned(), cors_opts.clone()),
     )
   }
 
@@ -100,17 +107,15 @@ impl ProxyCli for ModifiedReqwestClient {
       let mut resp = HyperResponse::new(ResBody::None);
       resp.headers_mut().insert(
         hyper::header::ACCESS_CONTROL_ALLOW_METHODS,
-        HeaderValue::from_static("GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS"),
+        HeaderValue::from_str(&self.cors_opts.allowed_methods).unwrap(),
       );
       resp.headers_mut().insert(
         hyper::header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_static(
-          "Authorization, Accept, Access-Control-Allow-Headers, Origin, X-Requested-With, Content-Type, Cookie, Set-Cookie",
-        ),
+        HeaderValue::from_str(&self.cors_opts.allowed_headers).unwrap(),
       );
       resp.headers_mut().insert(
         hyper::header::ACCESS_CONTROL_EXPOSE_HEADERS,
-        HeaderValue::from_static("Set-Cookie"),
+        HeaderValue::from_str(&self.cors_opts.allowed_client_headers).unwrap(),
       );
       resp
         .headers_mut()
@@ -224,17 +229,15 @@ impl ProxyCli for ModifiedReqwestClient {
       tracing::trace!("Allowing CORS on actual request");
       hyper_response.headers_mut().insert(
         hyper::header::ACCESS_CONTROL_ALLOW_METHODS,
-        HeaderValue::from_static("GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS"),
+        HeaderValue::from_str(&self.cors_opts.allowed_methods).unwrap(),
       );
       hyper_response.headers_mut().insert(
         hyper::header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_static(
-          "Authorization, Accept, Access-Control-Allow-Headers, Origin, X-Requested-With, Content-Type, Cookie, Set-Cookie",
-        ),
+        HeaderValue::from_str(&self.cors_opts.allowed_headers).unwrap(),
       );
       hyper_response.headers_mut().insert(
         hyper::header::ACCESS_CONTROL_EXPOSE_HEADERS,
-        HeaderValue::from_static("Set-Cookie"),
+        HeaderValue::from_str(&self.cors_opts.allowed_client_headers).unwrap(),
       );
       hyper_response
         .headers_mut()

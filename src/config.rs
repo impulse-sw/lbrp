@@ -67,6 +67,30 @@ pub(crate) struct CommonStatic {
   pub(crate) static_routes: HashMap<String, PathBuf>,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub(crate) struct CorsOpts {
+  pub(crate) allowed_methods: String,
+  pub(crate) allowed_client_headers: String,
+  pub(crate) allowed_headers: String,
+}
+
+impl Default for CorsOpts {
+  fn default() -> Self {
+    Self {
+      allowed_methods: "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS".to_string(),
+      allowed_client_headers: "Authorization, Set-Cookie, C3A-Registration-State, C3A-Challenge-State, C3A-Access, C3A-Client".to_string(),
+      allowed_headers: "Authorization, Accept, Access-Control-Allow-Headers, Origin, X-Requested-With, Content-Type, Cookie, Set-Cookie, C3A-Registration-State, C3A-Challenge-State, C3A-Access, C3A-Client".to_string(),
+    }
+  }
+}
+
+#[derive(Deserialize, Serialize, Default)]
+pub(crate) struct LbrpConfig {
+  pub(crate) lbrp_mode: LbrpMode,
+  pub(crate) services: Vec<Service>,
+  pub(crate) cors_opts: CorsOpts,
+}
+
 impl CommonService {
   pub(crate) fn should_startup(&self) -> bool {
     self.startup_cmd.is_some() && self.working_dir.is_some()
@@ -99,12 +123,6 @@ impl CommonService {
 
     Ok(child)
   }
-}
-
-#[derive(Deserialize, Serialize, Default)]
-pub(crate) struct LbrpConfig {
-  pub(crate) lbrp_mode: LbrpMode,
-  pub(crate) services: Vec<Service>,
 }
 
 impl LbrpConfig {
