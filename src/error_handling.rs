@@ -38,7 +38,7 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
     );
     file_upload!(path, filename)
   } else {
-    Err(ErrorResponse::from("Not found!").with_404_pub().build())
+    ServerError::from_public("Not found!").with_404().bail()
   }
 }
 

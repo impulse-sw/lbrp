@@ -99,23 +99,21 @@ impl CommonService {
   pub(crate) fn startup(&self) -> MResult<std::process::Child> {
     use std::process::Command;
 
-    let startup_cmd = self.startup_cmd.as_ref().ok_or(
-      ErrorResponse::from("There is no `startup_cmd` specified!")
-        .with_500_pub()
-        .build(),
-    )?;
-    let working_dir = self.working_dir.as_ref().ok_or(
-      ErrorResponse::from("There is no `working_dir` specified!")
-        .with_500_pub()
-        .build(),
-    )?;
+    let startup_cmd = self
+      .startup_cmd
+      .as_ref()
+      .ok_or(ServerError::from_public("There is no `startup_cmd` specified!").with_500())?;
+    let working_dir = self
+      .working_dir
+      .as_ref()
+      .ok_or(ServerError::from_public("There is no `working_dir` specified!").with_500())?;
 
     let child = Command::new(startup_cmd)
       .current_dir(working_dir)
       .stdout(std::process::Stdio::piped())
       .stderr(std::process::Stdio::piped())
       .spawn()
-      .map_err(|e| ErrorResponse::from(e).with_500_pub().build())?;
+      .map_err(|e| ServerError::from_private(e).with_500())?;
 
     if let Some(wait_after) = self.wait_after {
       std::thread::sleep(std::time::Duration::from_secs(wait_after));
@@ -136,14 +134,12 @@ impl LbrpConfig {
       })
       .find(|s| !s.to.starts_with("http://") && !s.to.starts_with("https://"))
     {
-      return Err(
-        ErrorResponse::from(format!(
-          "You aren't specified what schema (`http` or `https`) LBRP must use with `{}`",
-          invalid.to
-        ))
-        .with_500_pub()
-        .build(),
-      );
+      ServerError::from_public(format!(
+        "You aren't specified what schema (`http` or `https`) LBRP must use with `{}`",
+        invalid.to
+      ))
+      .with_405()
+      .bail()?;
     }
     Ok(())
   }

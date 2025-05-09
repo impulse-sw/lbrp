@@ -1,4 +1,4 @@
-use cc_server_kit::cc_utils::errors::ErrorResponse;
+use cc_server_kit::cc_utils::errors::ServerError;
 use cc_server_kit::reqwest;
 use cc_server_kit::salvo;
 use cc_server_kit::salvo::http::HeaderValue;
@@ -72,7 +72,7 @@ fn get_upgrade_type(headers: &HeaderMap) -> Option<&str> {
 }
 
 impl ProxyCli for ModifiedReqwestClient {
-  type Error = ErrorResponse;
+  type Error = ServerError;
 
   #[tracing::instrument(skip_all, fields(http.uri = proxied_request.uri().path(), http.method = proxied_request.method().as_str()))]
   async fn execute(
@@ -158,15 +158,15 @@ impl ProxyCli for ModifiedReqwestClient {
     let response = self
       .inner
       .execute(proxied_request.try_into().map_err(|e| {
-        ErrorResponse::from(format!("Can't convert proxied request due to: {}", e))
-          .with_500_pub()
-          .build()
+        ServerError::from_private(e)
+          .with_public("Can't convert proxied request!")
+          .with_500()
       })?)
       .await
       .map_err(|e| {
-        ErrorResponse::from(format!("Can't execute request due to: {}", e))
-          .with_404_pub()
-          .build()
+        ServerError::from_private(e)
+          .with_public("Can't execute request!")
+          .with_404()
       })?;
 
     let res_headers = response.headers().clone();
@@ -179,9 +179,9 @@ impl ProxyCli for ModifiedReqwestClient {
 
       if request_upgrade_type == response_upgrade_type.map(|s| s.to_lowercase()) {
         let mut response_upgraded = response.upgrade().await.map_err(|e| {
-          ErrorResponse::from(format!("Can't upgrade response due to: {}", e))
-            .with_500_pub()
-            .build()
+          ServerError::from_private(e)
+            .with_public("Can't upgrade response!")
+            .with_500()
         })?;
         if let Some(request_upgraded) = request_upgraded {
           tokio::spawn(async move {
@@ -196,27 +196,27 @@ impl ProxyCli for ModifiedReqwestClient {
             }
           });
         } else {
-          return Err(
-            ErrorResponse::from("request does not have an upgrade extension")
-              .with_500_pub()
-              .build(),
-          );
+          ServerError::from_private_str("request does not have an upgrade extension")
+            .with_500()
+            .bail()?;
         }
       } else {
-        return Err(ErrorResponse::from("upgrade type mismatch").with_500_pub().build());
+        ServerError::from_private_str("upgrade type mismatch")
+          .with_500()
+          .bail()?;
       }
       hyper_response.body(ResBody::None).map_err(|e| {
-        ErrorResponse::from(format!("Can't set document body due to: {}", e))
-          .with_500_pub()
-          .build()
+        ServerError::from_private(e)
+          .with_public("Can't set document body!")
+          .with_500()
       })?
     } else {
       hyper_response
         .body(ResBody::stream(response.bytes_stream()))
         .map_err(|e| {
-          ErrorResponse::from(format!("Can't set document body due to: {}", e))
-            .with_500_pub()
-            .build()
+          ServerError::from_private(e)
+            .with_public("Can't set document body!")
+            .with_500()
         })?
     };
     *hyper_response.headers_mut() = res_headers;

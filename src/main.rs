@@ -59,8 +59,11 @@ async fn main() -> MResult<()> {
 
     let mut reload_rx = reload_tx.subscribe();
 
-    let file = std::fs::File::open(setup.config_file.as_deref().unwrap_or("lbrp-config.json"))
-      .map_err(|_| "Can't open `lbrp-config.json`!")?;
+    let file = std::fs::File::open(setup.config_file.as_deref().unwrap_or("lbrp-config.json")).map_err(|e| {
+      ServerError::from_private(e)
+        .with_public("Can't open `lbrp-config.json`!")
+        .with_500()
+    })?;
     let reader = std::io::BufReader::new(file);
     let config = match serde_json::from_reader::<_, LbrpConfig>(reader) {
       Ok(config) => {
