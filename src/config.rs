@@ -60,6 +60,7 @@ pub(crate) struct CommonService {
   pub(crate) to: String,
   pub(crate) cors_domains: Option<Vec<String>>,
   pub(crate) skip_err_handling: Option<bool>,
+  pub(crate) enable_cba_auth: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]

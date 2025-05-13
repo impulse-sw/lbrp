@@ -9,9 +9,11 @@ mod proxy_client;
 mod router;
 mod r#static;
 
+use c3a::init_authcli;
 use cc_server_kit::cc_utils::prelude::*;
 use cc_server_kit::generic_setup::StartupVariant;
 use cc_server_kit::prelude::*;
+use cc_server_kit::salvo::affix_state;
 use cc_server_kit::salvo::server::ServerHandle;
 use cc_server_kit::startup::{get_root_router_autoinject, start_force_https_redirect, start_with_service};
 use serde::Deserialize;
@@ -79,8 +81,9 @@ async fn main() -> MResult<()> {
       }
     };
 
-    let lbrp_router =
-      get_root_router_autoinject(&state, setup.clone()).push(get_router_from_config(&config, &mut children));
+    let lbrp_router = get_root_router_autoinject(&state, setup.clone())
+      .hoop(affix_state::inject(init_authcli().await?))
+      .push(get_router_from_config(&config, &mut children));
 
     tracing::info!("Router:\n{:?}", lbrp_router);
 

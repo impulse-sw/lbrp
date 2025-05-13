@@ -4,5 +4,7 @@
 /public
 /target
 .directory
+.env
 Cargo.lock
 lbrp-config.json
+lbrp-keyring.json

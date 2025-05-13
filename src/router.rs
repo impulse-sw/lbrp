@@ -41,9 +41,8 @@ pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::proce
       let mut service_router = Router::new().host(service.from.clone());
 
       #[cfg(feature = "c3a")]
-      service_router = service_router
-        .push(Router::with_path("/c3a-store").goal(crate::c3a::store))
-        .push(Router::with_path("/c3a-unstore").goal(crate::c3a::unstore));
+      #[allow(clippy::needless_if)]
+      if service.enable_cba_auth.is_some_and(|v| v) {}
 
       if let Some(Service::CommonStatic(r#static)) =
         &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_)))

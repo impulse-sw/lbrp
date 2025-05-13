@@ -14,10 +14,25 @@ cache_files:
   - target
 artifacts:
   - target/release/lbrp
-variables: []
+  - lbrp-keyring.json
+variables:
+  - title: lbrp-adm-pass
+    is_secret: true
+    value:
+      type: from_env_file
+      env_file_path: .env
+      key: LBRP_C3A_ADMP
+  - title: lbrp-adm-kp
+    is_secret: true
+    value:
+      type: from_env_file
+      env_file_path: .env
+      key: LBRP_C3A_ADMCDPUB
 place_artifacts_into_project_root:
   - from: target/release/lbrp
     to: lbrp
+  - from: lbrp-keyring.json
+    to: ../lbrp-keyring.json
 pipelines:
   - title: lint
     desc: Got from `LBRP Pipeline`.
@@ -30,7 +45,6 @@ pipelines:
     exclusive_exec_tag: lints
     actions:
       - title: Lint without features
-        desc: ""
         info: cargo-clippy@0.1.0
         tags:
           - cargo
@@ -41,11 +55,8 @@ pipelines:
             - rust
           commands:
             - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy --no-default-features
-              ignore_fails: false
               show_success_output: true
-              show_bash_c: true
       - title: Lint with all features
-        desc: ""
         info: cargo-clippy@0.1.0
         tags:
           - cargo
@@ -56,9 +67,7 @@ pipelines:
             - rust
           commands:
             - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
-              ignore_fails: false
               show_success_output: true
-              show_bash_c: true
   - title: build
     desc: Got from `LBRP Pipeline`.
     info: lbrp@0.1.0
@@ -69,7 +78,6 @@ pipelines:
     default: true
     actions:
       - title: Lint
-        desc: ""
         info: cargo-clippy@0.1.0
         tags:
           - cargo
@@ -80,11 +88,8 @@ pipelines:
             - rust
           commands:
             - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
-              ignore_fails: false
               show_success_output: true
-              show_bash_c: true
       - title: Format
-        desc: Format `.rs` files
         info: cargo-fmt@0.1.0
         tags:
           - rust
@@ -97,12 +102,7 @@ pipelines:
             - rust
           commands:
             - bash_c: cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
-              ignore_fails: false
-              show_success_output: false
-              show_bash_c: true
-              only_when_fresh: false
       - title: Build
-        desc: Got from `Cargo Build (Release)`. Build the Rust project with Cargo default settings in release mode
         info: cargo-rel@0.1.0
         tags:
           - rust
@@ -113,11 +113,7 @@ pipelines:
             - rust
           commands:
             - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo build --release
-              ignore_fails: false
-              show_success_output: false
-              show_bash_c: true
       - title: Compress
-        desc: Got from `UPX Compress`.
         info: upx-compress@0.1.0
         tags:
           - upx
@@ -127,9 +123,6 @@ pipelines:
             - any
           commands:
             - bash_c: upx <af>
-              ignore_fails: false
-              show_success_output: false
-              show_bash_c: false
               placeholders:
                 - <af>
               replacements:
@@ -151,7 +144,6 @@ pipelines:
     default: false
     actions:
       - title: Lint
-        desc: ""
         info: cargo-clippy@0.1.0
         tags:
           - cargo
@@ -162,11 +154,7 @@ pipelines:
             - rust
           commands:
             - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
-              ignore_fails: false
-              show_success_output: true
-              show_bash_c: true
       - title: Format
-        desc: Format `.rs` files
         info: cargo-fmt@0.1.0
         tags:
           - rust
@@ -179,12 +167,7 @@ pipelines:
             - rust
           commands:
             - bash_c: cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
-              ignore_fails: false
-              show_success_output: false
-              show_bash_c: true
-              only_when_fresh: false
       - title: Build
-        desc: Got from `Cargo Build (Release)`. Build the Rust project with Cargo default settings in release mode
         info: cargo-rel@0.1.0
         tags:
           - rust
@@ -195,11 +178,7 @@ pipelines:
             - rust
           commands:
             - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo build --release
-              ignore_fails: false
-              show_success_output: false
-              show_bash_c: true
       - title: Compress
-        desc: Got from `UPX Compress`.
         info: upx-compress@0.1.0
         tags:
           - upx
@@ -209,9 +188,6 @@ pipelines:
             - any
           commands:
             - bash_c: upx <af>
-              ignore_fails: false
-              show_success_output: false
-              show_bash_c: false
               placeholders:
                 - <af>
               replacements:
@@ -224,7 +200,6 @@ pipelines:
                           type: plain
                           value: target/release/lbrp
       - title: Run
-        desc: ""
         info: run-lbrp@0.1.0
         tags:
           - lbrp
@@ -232,8 +207,28 @@ pipelines:
         action:
           type: observe
           command:
-            bash_c: sudo ./target/release/lbrp
+            bash_c: sudo LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' ./target/release/lbrp
             ignore_fails: true
             show_success_output: true
             show_bash_c: false
-            only_when_fresh: false
+            placeholders:
+              - $1
+              - $2
+            replacements:
+              - group:
+                  - from: $1
+                    to:
+                      title: lbrp-adm-pass
+                      is_secret: true
+                      value:
+                        type: from_env_file
+                        env_file_path: .env
+                        key: LBRP_C3A_ADMP
+                  - from: $2
+                    to:
+                      title: lbrp-adm-kp
+                      is_secret: true
+                      value:
+                        type: from_env_file
+                        env_file_path: .env
+                        key: LBRP_C3A_ADMCDPUB
