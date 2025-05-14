@@ -7,3 +7,4 @@ allow_oapi_access: false
 log_level: info
 log_file_level: debug
 config_file: lbrp-config.json
+keyring_file: lbrp-keyring.json

@@ -1,0 +1,12 @@
+[package]
+name = "lbrp-cba-autovalidate"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+
+[dependencies]
+c3a-client-sdk = { workspace = true }
+js-sys = { workspace = true }
+reqwest = { workspace = true, features = ["json", "cookies", "multipart"] }
+wasm-bindgen-futures = { workspace = true }
+web-sys = { workspace = true, features = ["Window"] }

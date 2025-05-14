@@ -1,4 +1,5 @@
 use cc_server_kit::prelude::*;
+use cc_server_kit::salvo::affix_state;
 use salvo::Handler;
 
 use crate::config::{LbrpConfig, Service};
@@ -40,16 +41,19 @@ pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::proce
 
       let mut service_router = Router::new().host(service.from.clone());
 
-      #[cfg(feature = "c3a")]
-      #[allow(clippy::needless_if)]
-      if service.enable_cba_auth.is_some_and(|v| v) {}
-
       if let Some(Service::CommonStatic(r#static)) =
         &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_)))
       {
         for (route, path) in &r#static.static_routes {
           service_router = service_router.push(Router::with_path(route).get(StaticRoute::new(path)));
         }
+      }
+
+      #[cfg(feature = "c3a")]
+      if let Some(tags) = &service.require_subdomain_auth {
+        service_router = service_router
+          .hoop(crate::c3a::MaybeC3ARedirect::new(tags.clone()))
+          .push(crate::c3a::auth_router());
       }
 
       service_router = service_router.push({

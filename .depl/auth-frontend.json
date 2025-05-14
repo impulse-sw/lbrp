@@ -1,0 +1,32 @@
+{
+  "patches": [
+    {
+      "files": [
+        {
+          "just": "lbrp-auth-frontend/dist/index.html"
+        }
+      ],
+      "patch_find_graph": [],
+      "replace": {
+        "from_to": [
+          "/lbrp-auth-frontend.js",
+          "/--inner-lbrp-auth/lbrp-auth-frontend.js"
+        ]
+      }
+    },
+    {
+      "files": [
+        {
+          "just": "lbrp-auth-frontend/dist/index.html"
+        }
+      ],
+      "patch_find_graph": [],
+      "replace": {
+        "from_to": [
+          "/lbrp-auth-frontend_bg.wasm",
+          "/--inner-lbrp-auth/lbrp-auth-frontend_bg.wasm"
+        ]
+      }
+    }
+  ]
+}

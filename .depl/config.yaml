@@ -34,6 +34,112 @@ place_artifacts_into_project_root:
   - from: lbrp-keyring.json
     to: ../lbrp-keyring.json
 pipelines:
+  - title: build-auth-frontend
+    desc: Build `lbrp-auth-frontend`
+    info: lbrp-auth-frontend-app-build@0.1.0
+    tags:
+      - cargo
+      - leptos
+      - trunk
+      - rust
+      - wasm
+      - web
+    default: true
+    actions:
+      - title: Format code
+        info: leptos-fmt@0.1.0
+        tags:
+          - rust
+          - cargo
+          - fmt
+        requirements:
+          - type: exists
+            path: ~/.cargo/bin/leptosfmt
+        exec_in_project_dir: true
+        action:
+          type: pre_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: cd lbrp-auth-frontend && leptosfmt -t 2 ./**/*.rs
+            - bash_c: cd lbrp-auth-frontend && cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
+      - title: Compile Tailwind Styles
+        info: tailwind-css@0.1.0
+        tags:
+          - rust
+          - css
+          - tailwind
+        exec_in_project_dir: false
+        action:
+          type: pre_build
+          supported_langs:
+            - css
+          commands:
+            - bash_c: cd lbrp-auth-frontend && tailwindcss -i ./input.css -o ./public/tailwind.css --minify
+      - title: Trunk Build
+        info: trunk-release@0.1.0
+        tags:
+          - cargo
+          - rust
+          - trunk
+          - wasm
+          - web
+        requirements:
+          - type: exists
+            path: ~/.cargo/bin/trunk
+        exec_in_project_dir: false
+        action:
+          type: build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk build --release --config lbrp-auth-frontend/Trunk.toml
+      - title: Optimize WASM
+        info: wasm-opt@0.1.0
+        tags:
+          - wasm
+          - wasm-opt
+        requirements:
+          - type: exists
+            path: /bin/wasm-opt
+        exec_in_project_dir: false
+        action:
+          type: post_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: wasm-opt -Oz --all-features -o {file} {file}
+              placeholders:
+                - "{file}"
+              replacements:
+                - group:
+                    - from: "{file}"
+                      to:
+                        title: wasm-project-file
+                        is_secret: false
+                        value:
+                          type: plain
+                          value: lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm
+      - title: Patch LBRP Frontend
+        info: patch-lbrp-auth-frontend@0.1.0
+        tags: []
+        action:
+          type: patch
+          patch: .depl/auth-frontend.json
+      - title: Add dist files
+        info: add-tailwind-css-to-dist-folder@0.1.0
+        tags: []
+        exec_in_project_dir: false
+        action:
+          type: post_build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: mkdir -p lbrp-auth-frontend/dist/--inner-lbrp-auth
+            - bash_c: cp lbrp-auth-frontend/public/tailwind.css lbrp-auth-frontend/dist/--inner-lbrp-auth/tailwind.css
+            - bash_c: mv lbrp-auth-frontend/dist/lbrp-auth-frontend.js lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp-auth-frontend.js
+            - bash_c: mv lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp-auth-frontend_bg.wasm
+            - bash_c: mv lbrp-auth-frontend/dist/index.html lbrp-auth-frontend/dist/--inner-lbrp-auth/index.html
   - title: lint
     desc: Got from `LBRP Pipeline`.
     info: lbrp@0.1.0

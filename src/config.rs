@@ -49,10 +49,9 @@ pub(crate) struct ErrorHandler {
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct CommonService {
-  #[cfg(feature = "c3a")]
   pub(crate) service_name: String,
   #[cfg(feature = "c3a")]
-  pub(crate) require_subdomain_access_token: Option<bool>,
+  pub(crate) require_subdomain_auth: Option<Vec<c3a_server_sdk::c3a_common::AppTag>>,
   pub(crate) startup_cmd: Option<PathBuf>,
   pub(crate) working_dir: Option<PathBuf>,
   pub(crate) wait_after: Option<u64>,
@@ -60,7 +59,6 @@ pub(crate) struct CommonService {
   pub(crate) to: String,
   pub(crate) cors_domains: Option<Vec<String>>,
   pub(crate) skip_err_handling: Option<bool>,
-  pub(crate) enable_cba_auth: Option<bool>,
 }
 
 #[derive(Deserialize, Serialize)]

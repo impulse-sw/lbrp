@@ -1,0 +1,9 @@
+[package]
+name = "lbrp-types"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+
+[dependencies]
+c3a-common = { workspace = true, features = ["app-client-types"] }
+serde = { workspace = true }

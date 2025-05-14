@@ -1,0 +1,17 @@
+[package]
+name = "lbrp-auth-frontend"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+
+[dependencies]
+c3a-common = { workspace = true }
+c3a-client-sdk = { workspace = true }
+cc-ui-kit = { workspace = true }
+cc-utils = { workspace = true, features = ["cresult", "reqwest"] }
+hex = { workspace = true }
+lbrp-types = { workspace = true }
+icondata = { workspace = true, features = ["lucide"] }
+leptos = { workspace = true, features = ["csr"] }
+leptos_icons = { workspace = true }
+reqwest = { workspace = true, features = ["json", "cookies", "multipart"] }

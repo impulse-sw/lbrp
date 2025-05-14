@@ -87,5 +87,7 @@ pub(crate) async fn proxied_error_handler(
       salvo::http::header::LOCATION,
       salvo::http::header::HeaderValue::from_str(&format!("/{}", status.as_u16())).unwrap(),
     );
+
+    ctrl.skip_rest();
   }
 }
