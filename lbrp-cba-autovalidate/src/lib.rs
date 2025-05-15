@@ -1,33 +1,26 @@
-use c3a_client_sdk::Authorize;
+use lbrp_cli_authorize::LbrpAuthorize;
+use wasm_bindgen::prelude::*;
 
 fn get_host() -> String {
   web_sys::window()
-    .ok_or::<String>("Can't get browser's window parameters.".into())
     .unwrap()
     .document()
-    .ok_or::<String>("Can't get window's document.".into())
     .unwrap()
     .location()
-    .ok_or::<String>("Can't get document's location.".into())
     .unwrap()
     .host()
-    .map_err(|e| format!("Can't get host: {:?}", e))
     .unwrap()
     .to_string()
 }
 
 fn get_protocol() -> String {
   web_sys::window()
-    .ok_or::<String>("Can't get browser's window parameters.".into())
     .unwrap()
     .document()
-    .ok_or::<String>("Can't get window's document.".into())
     .unwrap()
     .location()
-    .ok_or::<String>("Can't get document's location.".into())
     .unwrap()
     .protocol()
-    .map_err(|e| format!("Can't get protocol: {:?}", e))
     .unwrap()
     .to_string()
 }
@@ -49,12 +42,13 @@ async fn sleep(delay: i32) {
   wasm_bindgen_futures::JsFuture::from(p).await.unwrap();
 }
 
-fn main() {
+#[wasm_bindgen]
+pub fn cba_autovalidate() {
   wasm_bindgen_futures::spawn_local(async {
     loop {
       reqwest::Client::new()
         .get("/")
-        .authorize(endpoint("/--inner-lbrp-auth/revalidate"))
+        .lbrp_authorize(endpoint("/--inner-lbrp-auth/revalidate"))
         .await
         .ok();
       sleep(3 * 60 * 1000).await;

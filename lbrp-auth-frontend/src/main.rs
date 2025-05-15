@@ -71,8 +71,8 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
         return None;
       };
 
-      let keyring = c3a_client_sdk::client_keypair().unwrap();
-      let challenge_sign = c3a_client_sdk::sign_raw(&challenge, &keyring);
+      let keyring = lbrp_cli_authorize::client_keypair().unwrap();
+      let challenge_sign = lbrp_cli_authorize::sign_raw(&challenge, &keyring);
 
       if crate::requests::sign_up_step2(
         login,
@@ -113,8 +113,8 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
         return None;
       };
 
-      let keyring = c3a_client_sdk::client_keypair().unwrap();
-      let challenge_sign = c3a_client_sdk::sign_raw(&challenge, &keyring);
+      let keyring = lbrp_cli_authorize::client_keypair().unwrap();
+      let challenge_sign = lbrp_cli_authorize::sign_raw(&challenge, &keyring);
 
       if crate::requests::login_step2(
         login,

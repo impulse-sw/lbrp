@@ -5,8 +5,7 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-c3a-common = { workspace = true }
-c3a-client-sdk = { workspace = true }
+lbrp-cli-authorize = { workspace = true }
 cc-ui-kit = { workspace = true }
 cc-utils = { workspace = true, features = ["cresult", "reqwest"] }
 hex = { workspace = true }

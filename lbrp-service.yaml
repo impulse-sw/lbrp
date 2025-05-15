@@ -5,6 +5,6 @@ ssl_crt_path: certs/fullchain.pem
 ssl_key_path: certs/privkey.pem
 allow_oapi_access: false
 log_level: info
-log_file_level: debug
+log_file_level: info
 config_file: lbrp-config.json
 keyring_file: lbrp-keyring.json

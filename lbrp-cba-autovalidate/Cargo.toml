@@ -4,9 +4,13 @@ version = { workspace = true }
 edition = { workspace = true }
 authors = { workspace = true }
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
-c3a-client-sdk = { workspace = true }
+lbrp-cli-authorize = { workspace = true }
 js-sys = { workspace = true }
-reqwest = { workspace = true, features = ["json", "cookies", "multipart"] }
+reqwest = { workspace = true }
+wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
-web-sys = { workspace = true, features = ["Window"] }
+web-sys = { workspace = true, features = ["Window", "Document", "Location"] }

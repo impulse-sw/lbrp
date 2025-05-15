@@ -1,5 +1,4 @@
 use cc_server_kit::prelude::*;
-use cc_server_kit::salvo::affix_state;
 use salvo::Handler;
 
 use crate::config::{LbrpConfig, Service};

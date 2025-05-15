@@ -1,0 +1,15 @@
+[package]
+name = "lbrp-cli-authorize"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+
+[dependencies]
+lbrp-types = { workspace = true }
+
+c3a-common = { workspace = true, default-features = false, features = ["app-client-types", "ed25519-utils"] }
+cc-utils = { workspace = true, features = ["reqwest", "cresult"] }
+reqwest = { workspace = true, default-features = false }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+web-sys = { workspace = true, features = ["Storage", "Window"] }
