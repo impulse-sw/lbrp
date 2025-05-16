@@ -8,7 +8,7 @@ use lbrp_types::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse}
 use crate::c3a::{auth_client::LbrpAuthMethods, extract_authcli};
 
 #[handler]
-#[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
+#[instrument(skip_all)]
 async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<RegisterResponse>> {
   let query = req.parse_json::<RegisterRequest>().await.map_err(|e| {
     ServerError::from_private(e)
@@ -35,7 +35,7 @@ async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response)
 }
 
 #[handler]
-#[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
+#[instrument(skip_all)]
 async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenTriple>> {
   let query = req.parse_json::<RegisterRequest>().await.map_err(|e| {
     ServerError::from_private(e)
@@ -75,7 +75,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
 }
 
 #[handler]
-#[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
+#[instrument(skip_all)]
 async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<LoginResponse>> {
   let query = req.parse_json::<LoginRequest>().await.map_err(|e| {
     ServerError::from_private(e)
@@ -99,7 +99,7 @@ async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<Login
 }
 
 #[handler]
-#[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
+#[instrument(skip_all)]
 async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenTriple>> {
   let query = req.parse_json::<LoginRequest>().await.map_err(|e| {
     ServerError::from_private(e)
@@ -130,7 +130,7 @@ async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -
 }
 
 #[handler]
-#[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
+#[allow(clippy::bind_instead_of_map)]
 async fn check_auth(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<AuthorizeResponse>> {
   let auth_cli = extract_authcli(depot)?;
   <c3a_server_sdk::C3AClient as LbrpAuthMethods>::check_signed_in(auth_cli, req, res)
@@ -139,7 +139,6 @@ async fn check_auth(depot: &mut Depot, req: &mut Request, res: &mut Response) ->
 }
 
 #[handler]
-#[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
 async fn request_client_token(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<OK> {
   let auth_cli = extract_authcli(depot)?;
   <c3a_server_sdk::C3AClient as LbrpAuthMethods>::update_client_token(auth_cli, req, res).await

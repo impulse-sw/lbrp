@@ -108,19 +108,20 @@ pub(crate) async fn init_authcli(filepath: &str) -> MResult<C3AClient> {
       .update_config(&opts)
       .await
       .map_err(|e| ServerError::from_private(e).with_500())?;
+  }
 
-    if !auth_cli
-      .get_user_tags(id.clone())
+  let tags = auth_cli
+    .get_user_tags(id.clone())
+    .await
+    .map_err(|e| ServerError::from_private(e).with_500())?;
+
+  tracing::info!("Admin tags: {:?}", tags);
+
+  if !tags.iter().any(|v| v.scope.as_str().eq("restricted")) {
+    auth_cli
+      .edit_user_tags(id, &[("admin", "restricted").into()], &[])
       .await
-      .map_err(|e| ServerError::from_private(e).with_500())?
-      .iter()
-      .any(|v| v.scope.as_str().eq("restricted"))
-    {
-      auth_cli
-        .edit_user_tags(id, &[("admin", "restricted").into()], &[])
-        .await
-        .map_err(|e| ServerError::from_private(e).with_500())?;
-    }
+      .map_err(|e| ServerError::from_private(e).with_500())?;
   }
 
   Ok(auth_cli)

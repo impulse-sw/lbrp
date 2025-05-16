@@ -19,6 +19,7 @@ use crate::config::CorsOpts;
 #[derive(Clone, Debug)]
 pub(crate) struct ModifiedReqwestClient {
   inner: ReqwestCli,
+  domain: String,
   cors: Option<Vec<String>>,
   cors_opts: CorsOpts,
 }
@@ -26,18 +27,32 @@ pub(crate) struct ModifiedReqwestClient {
 #[allow(dead_code)]
 impl ModifiedReqwestClient {
   /// Create a new `ModifiedReqwestClient` with the given [`reqwest::Client`].
-  pub fn new(inner: ReqwestCli, cors: Option<Vec<String>>, cors_opts: CorsOpts) -> Self {
-    Self { inner, cors, cors_opts }
+  pub fn new(inner: ReqwestCli, server_domain: &str, cors: Option<Vec<String>>, cors_opts: CorsOpts) -> Self {
+    Self {
+      inner,
+      domain: server_domain.to_owned(),
+      cors,
+      cors_opts,
+    }
   }
 
   pub fn new_client<U: Upstreams>(
     upstreams: U,
+    server_domain: &str,
     cors: &Option<Vec<String>>,
     cors_opts: &CorsOpts,
   ) -> Proxy<U, ModifiedReqwestClient> {
     Proxy::new(
       upstreams,
-      ModifiedReqwestClient::new(ReqwestCli::default(), cors.to_owned(), cors_opts.clone()),
+      ModifiedReqwestClient::new(
+        ReqwestCli::builder()
+          .redirect(reqwest::redirect::Policy::none())
+          .build()
+          .unwrap(),
+        server_domain,
+        cors.to_owned(),
+        cors_opts.clone(),
+      ),
     )
   }
 
@@ -151,6 +166,10 @@ impl ProxyCli for ModifiedReqwestClient {
       tracing::trace!("{:?}", proxied_request.headers());
     }
 
+    proxied_request
+      .headers_mut()
+      .insert("host", HeaderValue::from_str(&self.domain).unwrap());
+
     let request_upgrade_type = get_upgrade_type(proxied_request.headers()).map(|s| s.to_owned());
 
     let proxied_request =
@@ -253,7 +272,6 @@ impl ProxyCli for ModifiedReqwestClient {
       hyper_response
         .headers_mut()
         .insert(hyper::header::VARY, HeaderValue::from_static("Cookie, Origin"));
-      tracing::trace!("{:?}", hyper_response.headers());
     }
 
     Ok(hyper_response)

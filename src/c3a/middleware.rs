@@ -39,6 +39,7 @@ impl MaybeC3ARedirect {
         tracing::debug!("Rendered changed html");
       } else if let salvo::http::ResBody::Stream(stream) = body {
         tracing::debug!("Found stream; content length = {:?}", res.headers.get("Content-Length"));
+        tracing::debug!("RESPONSE HEADERS: {:?}", res.headers());
         let mut stream = stream.into_inner();
         let mut collected_bytes = Vec::new();
         while let Some(frame) = stream.next().await {
@@ -60,6 +61,7 @@ impl MaybeC3ARedirect {
             }
           }
         }
+        tracing::debug!("Collected bytes: {:?}", String::from_utf8_lossy(&collected_bytes));
         match String::from_utf8(collected_bytes) {
           Err(e) => {
             ServerError::from_private(e)
@@ -87,15 +89,33 @@ impl MaybeC3ARedirect {
 
 #[cc_server_kit::salvo::async_trait]
 impl cc_server_kit::salvo::Handler for MaybeC3ARedirect {
-  #[instrument(skip_all, fields(http.uri = req.uri().path(), http.method = req.method().as_str()))]
   async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
     if let Ok(auth_cli) = extract_authcli(depot) {
       if let Ok(resp) = <c3a_server_sdk::C3AClient as LbrpAuthMethods>::check_signed_in(auth_cli, req, res).await
         && resp.authorized
       {
-        tracing::debug!("Authorized, thus we calling `ctrl.call_next`");
-        ctrl.call_next(req, depot, res).await;
-        Self::inject_autoupdater_on_html(res).await;
+        if let Ok(tags) = auth_cli
+          .get_user_tags(c3a_common::Id::Nickname {
+            nickname: "archibald-host".to_string(),
+          })
+          .await
+        {
+          tracing::debug!("Signed in, tags: {:?}", tags);
+          if let Ok(resp) =
+            <c3a_server_sdk::C3AClient as LbrpAuthMethods>::check_authorized_to(auth_cli, req, res, &self.tags).await
+            && resp.authorized
+          {
+            tracing::debug!("AUTHORIZED FOR TAGS: {:?}", self.tags);
+            ctrl.call_next(req, depot, res).await;
+            Self::inject_autoupdater_on_html(res).await;
+          } else {
+            tracing::debug!("UNAUTHORIZED FOR TAGS: {:?}", self.tags);
+            ServerError::from_private_str("Unauthorized for requested tags.")
+              .with_403()
+              .write(req, depot, res)
+              .await;
+          }
+        }
       } else if [
         "/--inner-lbrp-auth/sign-up-step1",
         "/--inner-lbrp-auth/sign-up-step2",

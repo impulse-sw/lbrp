@@ -24,6 +24,8 @@ pub(crate) trait LbrpAuthMethods {
     tags: &[AppTag],
   ) -> MResult<c3a_server_sdk::AuthorizeResponse>;
   async fn update_client_token(&self, req: &mut Request, res: &mut Response) -> MResult<OK>;
+
+  #[allow(dead_code)]
   async fn logout(&self, req: &mut Request, res: &mut Response) -> MResult<()>;
 }
 
@@ -200,6 +202,7 @@ impl LbrpAuthMethods for C3AClient {
   /// Requests a logout.
   ///
   /// After this, refresh token is no longer available, and access token stays alive up to 15 minutes.
+  #[allow(dead_code)]
   async fn logout(&self, req: &mut Request, res: &mut Response) -> MResult<()> {
     let triple = <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_try_collect(req)
       .map_err(|e| ServerError::from_private(e).with_401())?;
