@@ -3,6 +3,7 @@ use cc_server_kit::reqwest;
 use cc_server_kit::salvo;
 use cc_server_kit::salvo::http::HeaderValue;
 use cc_server_kit::tracing;
+use cc_server_kit::tracing::Instrument;
 use futures_util::TryStreamExt;
 use hyper::header::{CONNECTION, UPGRADE};
 use hyper::upgrade::OnUpgrade;
@@ -89,7 +90,15 @@ fn get_upgrade_type(headers: &HeaderMap) -> Option<&str> {
 impl ProxyCli for ModifiedReqwestClient {
   type Error = ServerError;
 
-  #[tracing::instrument(skip_all, fields(http.uri = proxied_request.uri().path(), http.method = proxied_request.method().as_str()))]
+  #[tracing::instrument(
+    skip_all,
+    name = "proxy-request",
+    fields(
+      http.domain = self.domain,
+      http.uri = proxied_request.uri().path(),
+      http.method = proxied_request.method().as_str()
+    )
+  )]
   async fn execute(
     &self,
     mut proxied_request: HyperRequest,
@@ -181,6 +190,7 @@ impl ProxyCli for ModifiedReqwestClient {
           .with_public("Can't convert proxied request!")
           .with_500()
       })?)
+      .instrument(tracing::debug_span!("reqwest::execute"))
       .await
       .map_err(|e| {
         ServerError::from_private(e)
@@ -197,17 +207,27 @@ impl ProxyCli for ModifiedReqwestClient {
       let response_upgrade_type = get_upgrade_type(response.headers());
 
       if request_upgrade_type == response_upgrade_type.map(|s| s.to_lowercase()) {
-        let mut response_upgraded = response.upgrade().await.map_err(|e| {
-          ServerError::from_private(e)
-            .with_public("Can't upgrade response!")
-            .with_500()
-        })?;
+        let mut response_upgraded = response
+          .upgrade()
+          .instrument(tracing::debug_span!("reqwest::response_upgrade"))
+          .await
+          .map_err(|e| {
+            ServerError::from_private(e)
+              .with_public("Can't upgrade response!")
+              .with_500()
+          })?;
         if let Some(request_upgraded) = request_upgraded {
           tokio::spawn(async move {
-            match request_upgraded.await {
+            match request_upgraded
+              .instrument(tracing::debug_span!("reqwest::request_upgrade"))
+              .await
+            {
               Ok(request_upgraded) => {
                 let mut request_upgraded = TokioIo::new(request_upgraded);
-                if let Err(e) = copy_bidirectional(&mut response_upgraded, &mut request_upgraded).await {
+                if let Err(e) = copy_bidirectional(&mut response_upgraded, &mut request_upgraded)
+                  .instrument(tracing::debug_span!("reqwest::bidirectional_copy"))
+                  .await
+                {
                   tracing::error!(error = ?e, "copying between upgraded connections failed");
                 }
               }

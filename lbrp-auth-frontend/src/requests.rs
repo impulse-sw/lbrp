@@ -1,17 +1,7 @@
+use cc_ui_kit::router::endpoint;
 use cc_utils::prelude::*;
 use lbrp_cli_authorize::LbrpAuthorize;
 use lbrp_types::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse};
-
-pub(crate) fn endpoint(api_uri: impl AsRef<str>) -> String {
-  use cc_ui_kit::router::{get_host, get_protocol};
-
-  format!(
-    "{}//{}{}",
-    get_protocol().unwrap(),
-    get_host().unwrap(),
-    api_uri.as_ref()
-  )
-}
 
 pub(crate) async fn sign_up_step1(id: String) -> CResult<(String, Vec<u8>)> {
   let resp = reqwest::Client::new()
@@ -23,18 +13,20 @@ pub(crate) async fn sign_up_step1(id: String) -> CResult<(String, Vec<u8>)> {
       cba_challenge_sign: None,
     })
     .send()
-    .await?
-    .error_for_status()?;
+    .await
+    .map_err(CliError::from)?
+    .error_for_status()
+    .map_err(CliError::from)?;
 
   let state = resp
     .headers()
     .get(lbrp_cli_authorize::PREREGISTER_HEADER)
-    .ok_or(CliError::from("Ошибка сервера"))?
+    .ok_or(CliError::from_str("Ошибка сервера"))?
     .to_str()
-    .map_err(|_| CliError::from("Ошибка сервера"))?
+    .map_err(|e| CliError::from(e))?
     .to_string();
 
-  let resp = resp.json::<RegisterResponse>().await?;
+  let resp = resp.json::<RegisterResponse>().await.map_err(CliError::from)?;
 
   Ok((state, resp.challenge.unwrap()))
 }
@@ -56,10 +48,13 @@ pub(crate) async fn sign_up_step2(
       cba_challenge_sign: Some(cba_challenge_sign),
     })
     .send()
-    .await?
-    .error_for_status()?
+    .await
+    .map_err(CliError::from)?
+    .error_for_status()
+    .map_err(CliError::from)?
     .json::<lbrp_cli_authorize::TokenTriple>()
-    .await?;
+    .await
+    .map_err(CliError::from)?;
 
   Ok(triple)
 }
@@ -74,10 +69,13 @@ pub(crate) async fn login_step1(id: String) -> CResult<Vec<u8>> {
       cba_challenge_sign: None,
     })
     .send()
-    .await?
-    .error_for_status()?
+    .await
+    .map_err(CliError::from)?
+    .error_for_status()
+    .map_err(CliError::from)?
     .json::<LoginResponse>()
-    .await?;
+    .await
+    .map_err(CliError::from)?;
 
   Ok(resp.challenge.unwrap())
 }
@@ -97,10 +95,13 @@ pub(crate) async fn login_step2(
       cba_challenge_sign: Some(cba_challenge_sign),
     })
     .send()
-    .await?
-    .error_for_status()?
+    .await
+    .map_err(CliError::from)?
+    .error_for_status()
+    .map_err(CliError::from)?
     .json::<lbrp_cli_authorize::TokenTriple>()
-    .await?;
+    .await
+    .map_err(CliError::from)?;
 
   Ok(triple)
 }

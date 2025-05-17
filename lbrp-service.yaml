@@ -9,3 +9,4 @@ log_file_level: info
 config_file: lbrp-config.json
 keyring_file: lbrp-keyring.json
 open_telemetry_endpoint: http://127.0.0.1:4317
+open_telemetry_log_level: debug

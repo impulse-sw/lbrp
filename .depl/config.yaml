@@ -161,7 +161,7 @@ pipelines:
           supported_langs:
             - rust
           commands:
-            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo build --release
+            - bash_c: RUSTFLAGS='--cfg reqwest_unstable -C target-cpu=native' cargo build --release
       - title: Compress LBRP
         info: upx-compress@0.1.0
         tags:
