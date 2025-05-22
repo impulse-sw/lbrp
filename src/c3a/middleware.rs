@@ -1,7 +1,6 @@
 use c3a_server_sdk::c3a_common;
 use cc_server_kit::prelude::*;
 use cc_server_kit::{cc_utils::responses::ExplicitServerWrite, salvo::Writer};
-use cc_utils::prelude::*;
 use futures_util::StreamExt;
 
 use crate::c3a::extract_authcli;

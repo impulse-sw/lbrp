@@ -6,7 +6,8 @@ ssl_key_path: certs/privkey.pem
 allow_oapi_access: false
 log_level: info
 log_file_level: info
+open_telemetry_grpc_endpoint: http://127.0.0.1:4317
+open_telemetry_http_endpoint: http://127.0.0.1:9090/api/v1/otlp/v1/metrics
+open_telemetry_log_level: debug
 config_file: lbrp-config.json
 keyring_file: lbrp-keyring.json
-open_telemetry_endpoint: http://127.0.0.1:4317
-open_telemetry_log_level: debug

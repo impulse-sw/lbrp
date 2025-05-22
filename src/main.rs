@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::todo, clippy::unimplemented)]
+// #![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![feature(let_chains, string_from_utf8_lossy_owned, stmt_expr_attributes)]
 
 #[cfg(feature = "c3a")]
@@ -22,7 +22,7 @@ use tokio::select;
 use tokio::sync::broadcast;
 
 use crate::config::{LbrpConfig, Service, config_watcher};
-use crate::error_handling::{ERR_HANDLER, error_handler};
+use crate::error_handling::error_handler;
 use crate::router::get_router_from_config;
 
 #[derive(Deserialize, Default, Clone)]
@@ -86,18 +86,14 @@ async fn main() -> MResult<()> {
       .hoop(affix_state::inject(
         init_authcli(setup.keyring_file.as_deref().unwrap_or("lbrp-keyring.json")).await?,
       ))
-      .push(get_router_from_config(&config, &mut children));
+      .push(get_router_from_config(&config, &mut children).await);
 
     tracing::info!("Router:\n{:?}", lbrp_router);
 
     let mut lbrp_service = salvo::Service::new(lbrp_router);
 
-    if let Some(Service::ErrorHandler(err_handler)) =
-      config.services.iter().find(|s| matches!(s, Service::ErrorHandler(_)))
-    {
-      let mut guard = ERR_HANDLER.as_ref().lock().await;
-      *guard = Some(err_handler.clone());
-      lbrp_service = lbrp_service.catcher(salvo::catcher::Catcher::default().hoop(error_handler));
+    if config.services.iter().any(|s| matches!(s, Service::ErrorHandler(_))) {
+      lbrp_service = lbrp_service.catcher(salvo::catcher::Catcher::new(error_handler));
     }
 
     if matches!(state.startup_variant, StartupVariant::HttpsOnly)

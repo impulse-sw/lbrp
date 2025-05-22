@@ -1,5 +1,4 @@
 use cc_server_kit::cc_utils::errors::ServerError;
-use cc_server_kit::reqwest;
 use cc_server_kit::salvo;
 use cc_server_kit::salvo::http::HeaderValue;
 use cc_server_kit::tracing;
@@ -117,6 +116,8 @@ impl ProxyCli for ModifiedReqwestClient {
         .map(|v| v.to_string())
         .unwrap_or("undefined".to_string()),
     );
+
+    proxied_request.headers_mut().remove("Accept-Encoding");
 
     let origin = proxied_request.headers().get(hyper::header::ORIGIN).cloned();
 

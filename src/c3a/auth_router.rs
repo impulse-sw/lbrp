@@ -10,7 +10,7 @@ use crate::c3a::{auth_client::LbrpAuthMethods, extract_authcli};
 #[handler]
 #[instrument(skip_all)]
 async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<RegisterResponse>> {
-  let query = req.parse_json::<RegisterRequest>().await.map_err(|e| {
+  let query = req.parse_json_simd::<RegisterRequest>().await.map_err(|e| {
     ServerError::from_private(e)
       .with_public("Invalid register request!")
       .with_401()
@@ -37,7 +37,7 @@ async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response)
 #[handler]
 #[instrument(skip_all)]
 async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenTriple>> {
-  let query = req.parse_json::<RegisterRequest>().await.map_err(|e| {
+  let query = req.parse_json_simd::<RegisterRequest>().await.map_err(|e| {
     ServerError::from_private(e)
       .with_public("Invalid register request!")
       .with_401()
@@ -77,7 +77,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
 #[handler]
 #[instrument(skip_all)]
 async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<LoginResponse>> {
-  let query = req.parse_json::<LoginRequest>().await.map_err(|e| {
+  let query = req.parse_json_simd::<LoginRequest>().await.map_err(|e| {
     ServerError::from_private(e)
       .with_public("Invalid login request!")
       .with_401()
@@ -101,7 +101,7 @@ async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<Login
 #[handler]
 #[instrument(skip_all)]
 async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenTriple>> {
-  let query = req.parse_json::<LoginRequest>().await.map_err(|e| {
+  let query = req.parse_json_simd::<LoginRequest>().await.map_err(|e| {
     ServerError::from_private(e)
       .with_public("Invalid login request!")
       .with_401()

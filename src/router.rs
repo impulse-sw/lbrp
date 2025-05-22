@@ -2,11 +2,11 @@ use cc_server_kit::prelude::*;
 use salvo::Handler;
 
 use crate::config::{LbrpConfig, Service};
-use crate::error_handling::{error_files_handler, error_index_handler, proxied_error_handler};
+use crate::error_handling::{ERR_HANDLER, error_files_handler, error_index_handler, proxied_error_handler};
 use crate::proxy_client::ModifiedReqwestClient;
 use crate::r#static::StaticRoute;
 
-pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::Child>) -> Router {
+pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::Child>) -> Router {
   for child in children.iter_mut() {
     child.kill().unwrap();
   }
@@ -30,6 +30,9 @@ pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::proce
     for file in &err_handler.static_files {
       router = router.push(Router::new().path(format!("/{}", file)).get(error_files_handler));
     }
+
+    let mut guard = ERR_HANDLER.as_ref().lock().await;
+    *guard = Some(err_handler.clone());
   }
 
   for service in &config.services {
@@ -59,6 +62,7 @@ pub fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::proce
         if config.services.iter().any(|s| matches!(s, Service::ErrorHandler(_)))
           && !service.skip_err_handling.is_some_and(|v| v)
         {
+          tracing::debug!("Built domain with error handler: {}", service.from);
           Router::with_path("{**rest}").goal(
             ModifiedReqwestClient::new_client(
               service.to.clone(),
