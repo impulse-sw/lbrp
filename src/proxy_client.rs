@@ -14,34 +14,23 @@ use salvo::proxy::{Client as ProxyCli, Proxy, Upstreams};
 use salvo::rt::tokio::TokioIo;
 use tokio::io::copy_bidirectional;
 
-use crate::config::CorsOpts;
-
 #[derive(Clone, Debug)]
 pub(crate) struct ModifiedReqwestClient {
   inner: ReqwestCli,
   domain: String,
-  cors: Option<Vec<String>>,
-  cors_opts: CorsOpts,
 }
 
 #[allow(dead_code)]
 impl ModifiedReqwestClient {
   /// Create a new `ModifiedReqwestClient` with the given [`reqwest::Client`].
-  pub fn new(inner: ReqwestCli, server_domain: &str, cors: Option<Vec<String>>, cors_opts: CorsOpts) -> Self {
+  pub fn new(inner: ReqwestCli, server_domain: &str) -> Self {
     Self {
       inner,
       domain: server_domain.to_owned(),
-      cors,
-      cors_opts,
     }
   }
 
-  pub fn new_client<U: Upstreams>(
-    upstreams: U,
-    server_domain: &str,
-    cors: &Option<Vec<String>>,
-    cors_opts: &CorsOpts,
-  ) -> Proxy<U, ModifiedReqwestClient> {
+  pub fn new_client<U: Upstreams>(upstreams: U, server_domain: &str) -> Proxy<U, ModifiedReqwestClient> {
     Proxy::new(
       upstreams,
       ModifiedReqwestClient::new(
@@ -50,8 +39,6 @@ impl ModifiedReqwestClient {
           .build()
           .unwrap(),
         server_domain,
-        cors.to_owned(),
-        cors_opts.clone(),
       ),
     )
   }
@@ -119,63 +106,6 @@ impl ProxyCli for ModifiedReqwestClient {
 
     proxied_request.headers_mut().remove("Accept-Encoding");
 
-    let origin = proxied_request.headers().get(hyper::header::ORIGIN).cloned();
-
-    // CORS logic
-    if let Some(cors) = &self.cors
-      && proxied_request.method() == hyper::Method::OPTIONS
-      && let Some(origin) = &origin
-      && let Ok(origin) = origin.to_str()
-      && cors.iter().any(|v| v.as_str().eq(origin))
-    {
-      tracing::trace!("Allowing `OPTIONS` request");
-      let mut resp = HyperResponse::new(ResBody::None);
-      resp.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_METHODS,
-        HeaderValue::from_str(&self.cors_opts.allowed_methods).unwrap(),
-      );
-      resp.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_str(&self.cors_opts.allowed_headers).unwrap(),
-      );
-      resp.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_EXPOSE_HEADERS,
-        HeaderValue::from_str(&self.cors_opts.allowed_client_headers).unwrap(),
-      );
-      resp
-        .headers_mut()
-        .insert(hyper::header::ACCESS_CONTROL_MAX_AGE, HeaderValue::from_static("86400"));
-      resp.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-        HeaderValue::from_str(origin).unwrap(),
-      );
-      resp.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
-        HeaderValue::from_static("true"),
-      );
-      resp
-        .headers_mut()
-        .insert(hyper::header::VARY, HeaderValue::from_static("Cookie, Origin"));
-      *resp.status_mut() = StatusCode::NO_CONTENT;
-      tracing::trace!("{:?}", resp.headers());
-      return Ok(resp);
-    }
-
-    if let Some(cors) = &self.cors
-      && let Some(host) = &proxied_request.headers().get(hyper::header::HOST).cloned()
-      && let Ok(host) = host.to_str()
-      && let Some(origin) = &origin
-      && let Ok(origin) = origin.to_str()
-      && cors.iter().any(|v| v.as_str().eq(origin))
-      && host.ne(origin)
-    {
-      tracing::trace!("Change `ORIGIN` to `HOST`");
-      proxied_request
-        .headers_mut()
-        .insert(hyper::header::ORIGIN, HeaderValue::from_str(host).unwrap());
-      tracing::trace!("{:?}", proxied_request.headers());
-    }
-
     proxied_request
       .headers_mut()
       .insert("host", HeaderValue::from_str(&self.domain).unwrap());
@@ -200,6 +130,7 @@ impl ProxyCli for ModifiedReqwestClient {
       })?;
 
     let res_headers = response.headers().clone();
+
     let hyper_response = hyper::Response::builder()
       .status(response.status())
       .version(response.version());
@@ -260,40 +191,6 @@ impl ProxyCli for ModifiedReqwestClient {
         })?
     };
     *hyper_response.headers_mut() = res_headers;
-
-    if let Some(cors) = &self.cors
-      && let Some(origin) = &origin
-      && let Ok(origin) = origin.to_str()
-      && cors.iter().any(|v| v.as_str().eq(origin))
-    {
-      tracing::trace!("Allowing CORS on actual request");
-      hyper_response.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_METHODS,
-        HeaderValue::from_str(&self.cors_opts.allowed_methods).unwrap(),
-      );
-      hyper_response.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_str(&self.cors_opts.allowed_headers).unwrap(),
-      );
-      hyper_response.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_EXPOSE_HEADERS,
-        HeaderValue::from_str(&self.cors_opts.allowed_client_headers).unwrap(),
-      );
-      hyper_response
-        .headers_mut()
-        .insert(hyper::header::ACCESS_CONTROL_MAX_AGE, HeaderValue::from_static("86400"));
-      hyper_response.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_ORIGIN,
-        HeaderValue::from_str(origin).unwrap(),
-      );
-      hyper_response.headers_mut().insert(
-        hyper::header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
-        HeaderValue::from_static("true"),
-      );
-      hyper_response
-        .headers_mut()
-        .insert(hyper::header::VARY, HeaderValue::from_static("Cookie, Origin"));
-    }
 
     Ok(hyper_response)
   }

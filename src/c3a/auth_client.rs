@@ -154,6 +154,7 @@ impl LbrpAuthMethods for C3AClient {
 
     Ok(c3a_server_sdk::AuthorizeResponse {
       authorized: triple.approved,
+      user_id: triple.id,
     })
   }
 

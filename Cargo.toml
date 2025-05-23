@@ -32,7 +32,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
 authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 
@@ -40,9 +40,9 @@ authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 lbrp-cli-authorize = { path = "lbrp-cli-authorize" }
 lbrp-types = { path = "lbrp-types" }
 
-c3a-common = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.0-4", default-features = false }
-c3a-client-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.0-4" }
-c3a-server-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.0-4" }
+c3a-common = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.2", default-features = false }
+c3a-client-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.2" }
+c3a-server-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.2" }
 cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.8.1-2", default-features = false }
 cc-static-server = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.8.1-2" }
 cc-ui-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.8.1-2" }

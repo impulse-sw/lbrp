@@ -1,10 +1,30 @@
 use cc_server_kit::prelude::*;
-use salvo::Handler;
 
 use crate::config::{LbrpConfig, Service};
+use crate::cors_handling::CorsHandler;
 use crate::error_handling::{ERR_HANDLER, error_files_handler, error_index_handler, proxied_error_handler};
 use crate::proxy_client::ModifiedReqwestClient;
 use crate::r#static::StaticRoute;
+
+pub fn excluded_from_err_handling(services: &[Service]) -> Vec<String> {
+  services
+    .iter()
+    .filter_map(|s| {
+      if let Service::CommonService(common) = s {
+        Some(common)
+      } else {
+        None
+      }
+    })
+    .filter_map(|s| {
+      if s.skip_err_handling.is_some_and(|v| v) {
+        Some(s.from.to_string())
+      } else {
+        None
+      }
+    })
+    .collect::<Vec<_>>()
+}
 
 pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std::process::Child>) -> Router {
   for child in children.iter_mut() {
@@ -58,29 +78,24 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
           .push(crate::c3a::auth_router());
       }
 
-      service_router = service_router.push({
-        if config.services.iter().any(|s| matches!(s, Service::ErrorHandler(_)))
-          && !service.skip_err_handling.is_some_and(|v| v)
-        {
-          tracing::debug!("Built domain with error handler: {}", service.from);
-          Router::with_path("{**rest}").goal(
-            ModifiedReqwestClient::new_client(
-              service.to.clone(),
-              &service.from,
-              &service.cors_domains,
-              &config.cors_opts,
-            )
-            .hoop(proxied_error_handler),
-          )
-        } else {
-          Router::with_path("{**rest}").goal(ModifiedReqwestClient::new_client(
-            service.to.clone(),
-            &service.from,
-            &service.cors_domains,
-            &config.cors_opts,
-          ))
-        }
-      });
+      let mut rest_router =
+        Router::with_path("{**rest}").goal(ModifiedReqwestClient::new_client(service.to.clone(), &service.from));
+
+      if config.services.iter().any(|s| matches!(s, Service::ErrorHandler(_)))
+        && !service.skip_err_handling.is_some_and(|v| v)
+      {
+        rest_router = rest_router.hoop(proxied_error_handler);
+      }
+
+      if let Some(origins) = service.cors_domains.as_ref().cloned() {
+        rest_router = rest_router.hoop(CorsHandler::new(
+          service.from.to_owned(),
+          origins,
+          config.cors_opts.clone(),
+        ));
+      }
+
+      service_router = service_router.push(rest_router);
       router = router.push(service_router);
     }
   }

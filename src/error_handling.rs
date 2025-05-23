@@ -65,31 +65,60 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
   }
 }
 
-#[handler]
-#[tracing::instrument(
-  skip_all,
-  name = "error-delivery",
-  level = "debug",
-  fields(
-    http.uri = req.uri().path(),
-    http.method = req.method().as_str()
-  )
-)]
-pub(crate) async fn error_handler(req: &mut Request, res: &mut Response, ctrl: &mut FlowCtrl) {
-  let guard = ERR_HANDLER.as_ref().lock().await;
-  if res.status_code.is_none_or(|s| s.as_u16() >= 400u16)
-    && let Some(handler) = guard.as_ref()
-    && let Ok(data) = tokio::fs::read_to_string(handler.dist_dir.join("index.html")).await
-  {
-    tracing::warn!(
-      "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
-      req.remote_addr(),
-      req.uri(),
-      res.status_code,
-    );
-    res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
-    res.render(salvo::writing::Text::Html(data));
-    ctrl.skip_rest();
+pub(crate) struct ErrHandler {
+  pub(crate) excluded: Vec<String>,
+}
+
+impl ErrHandler {
+  pub(crate) fn new(excluded: Vec<String>) -> Self {
+    Self { excluded }
+  }
+}
+
+#[cc_server_kit::salvo::async_trait]
+impl cc_server_kit::salvo::Handler for ErrHandler {
+  #[tracing::instrument(
+    skip_all,
+    name = "error-delivery",
+    level = "debug",
+    fields(
+      http.uri = req.uri().path(),
+      http.method = req.method().as_str()
+    )
+  )]
+  async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
+    let origin = req.headers().get(cc_server_kit::salvo::hyper::header::ORIGIN).cloned();
+    ctrl.call_next(req, depot, res).await;
+
+    let exclude_matched = if let Some(origin) = &origin
+      && let Ok(origin) = origin.to_str()
+      && self
+        .excluded
+        .iter()
+        .any(|o| format!("https://{}", o).as_str().eq(origin))
+    {
+      true
+    } else {
+      false
+    };
+
+    if !exclude_matched {
+      let guard = ERR_HANDLER.as_ref().lock().await;
+      if res.status_code.is_none_or(|s| s.as_u16() >= 400u16)
+        && let Some(handler) = guard.as_ref()
+        && let Ok(data) = tokio::fs::read_to_string(handler.dist_dir.join("index.html")).await
+      {
+        tracing::warn!(
+          "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
+          req.remote_addr(),
+          req.uri(),
+          res.status_code,
+        );
+        res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
+        res.render(salvo::writing::Text::Html(data));
+        ctrl.skip_rest();
+      }
+    }
   }
 }
 

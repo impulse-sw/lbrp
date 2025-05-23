@@ -4,6 +4,7 @@
 #[cfg(feature = "c3a")]
 mod c3a;
 mod config;
+mod cors_handling;
 mod error_handling;
 mod proxy_client;
 mod router;
@@ -22,7 +23,7 @@ use tokio::select;
 use tokio::sync::broadcast;
 
 use crate::config::{LbrpConfig, Service, config_watcher};
-use crate::error_handling::error_handler;
+use crate::error_handling::ErrHandler;
 use crate::router::get_router_from_config;
 
 #[derive(Deserialize, Default, Clone)]
@@ -93,7 +94,9 @@ async fn main() -> MResult<()> {
     let mut lbrp_service = salvo::Service::new(lbrp_router);
 
     if config.services.iter().any(|s| matches!(s, Service::ErrorHandler(_))) {
-      lbrp_service = lbrp_service.catcher(salvo::catcher::Catcher::new(error_handler));
+      lbrp_service = lbrp_service.catcher(salvo::catcher::Catcher::new(ErrHandler::new(
+        crate::router::excluded_from_err_handling(&config.services),
+      )));
     }
 
     if matches!(state.startup_variant, StartupVariant::HttpsOnly)
