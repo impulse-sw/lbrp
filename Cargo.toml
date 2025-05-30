@@ -6,7 +6,7 @@ authors = { workspace = true }
 
 [dependencies]
 c3a-server-sdk = { workspace = true, optional = true, features = ["allow-unsafe-http"] }
-cc-server-kit = { workspace = true, features = ["cors", "oapi", "otel", "http3", "proxy", "force-https", "reqwest-http3"] }
+cc-server-kit = { workspace = true, features = ["cors", "oapi", "otel", "http3", "proxy", "force-https", "reqwest-http3", "compression"] }
 cc-static-server = { workspace = true }
 futures-util = { workspace = true }
 lbrp-types = { workspace = true }
@@ -33,7 +33,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.4"
+version = "0.2.5"
 edition = "2024"
 authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 

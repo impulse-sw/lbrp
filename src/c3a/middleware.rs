@@ -105,7 +105,11 @@ impl cc_server_kit::salvo::Handler for MaybeC3ARedirect {
             && resp.authorized
           {
             tracing::debug!("AUTHORIZED FOR TAGS: {:?}", self.tags);
+            let encodings = req.headers_mut().remove("Accept-Encoding");
             ctrl.call_next(req, depot, res).await;
+            if let Some(encodings) = encodings {
+              req.headers_mut().insert("Accept-Encoding", encodings);
+            }
             Self::inject_autoupdater_on_html(res).await;
           } else {
             tracing::debug!("UNAUTHORIZED FOR TAGS: {:?}", self.tags);

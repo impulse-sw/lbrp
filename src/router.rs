@@ -1,4 +1,5 @@
 use cc_server_kit::prelude::*;
+use cc_server_kit::salvo::prelude::{Compression, CompressionLevel};
 
 use crate::config::{LbrpConfig, Service};
 use crate::cors_handling::CorsHandler;
@@ -32,7 +33,7 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
   }
   children.clear();
 
-  let mut router = Router::new();
+  let mut router = Router::with_hoop(Compression::new().disable_all().enable_zstd(CompressionLevel::Fastest));
 
   if let Some(Service::ErrorHandler(err_handler)) =
     config.services.iter().find(|s| matches!(s, Service::ErrorHandler(_)))

@@ -104,8 +104,6 @@ impl ProxyCli for ModifiedReqwestClient {
         .unwrap_or("undefined".to_string()),
     );
 
-    proxied_request.headers_mut().remove("Accept-Encoding");
-
     proxied_request
       .headers_mut()
       .insert("host", HeaderValue::from_str(&self.domain).unwrap());
