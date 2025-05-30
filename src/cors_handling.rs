@@ -5,15 +5,13 @@ use hyper::header::HeaderValue;
 use crate::config::CorsOpts;
 
 pub struct CorsHandler {
-  pub domain: String,
   pub domain_cors_origins: Vec<String>,
   pub cors_opts: CorsOpts,
 }
 
 impl CorsHandler {
-  pub(crate) fn new(domain: String, origins: Vec<String>, cors_opts: CorsOpts) -> Self {
+  pub(crate) fn new(origins: Vec<String>, cors_opts: CorsOpts) -> Self {
     Self {
-      domain,
       domain_cors_origins: origins,
       cors_opts,
     }
@@ -56,11 +54,13 @@ impl cc_server_kit::salvo::Handler for CorsHandler {
           true,
         )
         .unwrap();
-      res.add_header(
-        hyper::header::ACCESS_CONTROL_MAX_AGE,
-        HeaderValue::from_static("86400"),
-        true,
-      );
+      res
+        .add_header(
+          hyper::header::ACCESS_CONTROL_MAX_AGE,
+          HeaderValue::from_static("86400"),
+          true,
+        )
+        .unwrap();
       res
         .add_header(hyper::header::ACCESS_CONTROL_ALLOW_ORIGIN, origin.unwrap(), true)
         .unwrap();
@@ -79,7 +79,7 @@ impl cc_server_kit::salvo::Handler for CorsHandler {
       return;
     }
 
-    ctrl.call_next(req, depot, res);
+    ctrl.call_next(req, depot, res).await;
 
     if cors_matched {
       res
@@ -103,11 +103,13 @@ impl cc_server_kit::salvo::Handler for CorsHandler {
           true,
         )
         .unwrap();
-      res.add_header(
-        hyper::header::ACCESS_CONTROL_MAX_AGE,
-        HeaderValue::from_static("86400"),
-        true,
-      );
+      res
+        .add_header(
+          hyper::header::ACCESS_CONTROL_MAX_AGE,
+          HeaderValue::from_static("86400"),
+          true,
+        )
+        .unwrap();
       res
         .add_header(hyper::header::ACCESS_CONTROL_ALLOW_ORIGIN, origin.unwrap(), true)
         .unwrap();

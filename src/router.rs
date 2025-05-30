@@ -88,11 +88,7 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       }
 
       if let Some(origins) = service.cors_domains.as_ref().cloned() {
-        rest_router = rest_router.hoop(CorsHandler::new(
-          service.from.to_owned(),
-          origins,
-          config.cors_opts.clone(),
-        ));
+        rest_router = rest_router.hoop(CorsHandler::new(origins, config.cors_opts.clone()));
       }
 
       service_router = service_router.push(rest_router);

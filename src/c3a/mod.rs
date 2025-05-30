@@ -53,7 +53,7 @@ pub(crate) async fn init_authcli(filepath: &str) -> MResult<C3AClient> {
   )
   .map_err(|e| ServerError::from_private(e).with_500())?;
 
-  tracing::debug!("PUBLIC KEY: {:?}", keypair.verifying_key().as_bytes());
+  tracing::debug!("PUBLIC KEY: {:?}", keypair.public());
 
   let mut auth_cli = C3AClient::new(opts.app_name.as_str(), keypair, "http://127.0.0.1:19806")
     .await
@@ -74,9 +74,10 @@ pub(crate) async fn init_authcli(filepath: &str) -> MResult<C3AClient> {
     nickname: "archibald-host".into(),
   };
   if auth_cli.check_user_exists(id.clone()).await.is_err() {
-    let ckeypair =
-      c3a_common::unpack_cert(std::env::var("LBRP_C3A_ADMCDPUB").map_err(|e| ServerError::from_private(e).with_500())?)
-        .map_err(|e| ServerError::from_private(e).with_500())?;
+    let ckeypair = c3a_common::SignKeypair::unpack_keypair(
+      std::env::var("LBRP_C3A_ADMCDPUB").map_err(|e| ServerError::from_private(e).with_500())?,
+    )
+    .map_err(|e| ServerError::from_private(e).with_500())?;
     let password = std::env::var("LBRP_C3A_ADMP").map_err(|e| ServerError::from_private(e).with_500())?;
 
     opts.sign_up_opts.allow_sign_up = true;
@@ -90,14 +91,14 @@ pub(crate) async fn init_authcli(filepath: &str) -> MResult<C3AClient> {
       .await
       .map_err(|e| ServerError::from_private(e).with_500())?;
 
-    let challenge_sign = c3a_common::sign_raw(&prereg.cba_challenge.unwrap(), &ckeypair);
+    let challenge_sign = ckeypair.sign_raw(&prereg.cba_challenge.unwrap());
 
     auth_cli
       .perform_sign_up(
         id.clone(),
         state,
         vec![vec![c3a_common::AuthenticationStepApproval::Password { password }]],
-        Some(ckeypair.verifying_key().as_bytes().to_vec()),
+        Some(ckeypair.public()),
         Some(challenge_sign),
       )
       .await

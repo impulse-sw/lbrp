@@ -1,6 +1,8 @@
+#![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![allow(non_snake_case)]
 
 use cc_ui_kit::prelude::*;
+use cc_ui_kit::router::{get_path, redirect};
 
 mod requests;
 
@@ -35,7 +37,7 @@ fn AuthApp() -> impl IntoView {
       if !*auth {
         *page.write() = "login".to_string();
       } else {
-        cc_ui_kit::router::redirect("/".to_string()).unwrap();
+        redirect(get_path().unwrap()).unwrap();
       }
     }
   });
@@ -72,17 +74,11 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
       };
 
       let keyring = lbrp_cli_authorize::client_keypair().unwrap();
-      let challenge_sign = lbrp_cli_authorize::sign_raw(&challenge, &keyring);
+      let challenge_sign = keyring.sign_raw(&challenge);
 
-      if crate::requests::sign_up_step2(
-        login,
-        password,
-        state,
-        keyring.verifying_key().as_bytes().to_vec(),
-        challenge_sign.to_vec(),
-      )
-      .await
-      .is_err()
+      if crate::requests::sign_up_step2(login, password, state, keyring.public(), challenge_sign.to_vec())
+        .await
+        .is_err()
       {
         *sign_up_triggered.write() = false;
         return None;
@@ -114,16 +110,11 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
       };
 
       let keyring = lbrp_cli_authorize::client_keypair().unwrap();
-      let challenge_sign = lbrp_cli_authorize::sign_raw(&challenge, &keyring);
+      let challenge_sign = keyring.sign_raw(&challenge);
 
-      if crate::requests::login_step2(
-        login,
-        password,
-        keyring.verifying_key().as_bytes().to_vec(),
-        challenge_sign.to_vec(),
-      )
-      .await
-      .is_err()
+      if crate::requests::login_step2(login, password, keyring.public(), challenge_sign.to_vec())
+        .await
+        .is_err()
       {
         *login_triggered.write() = false;
         return None;

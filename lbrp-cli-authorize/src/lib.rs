@@ -9,19 +9,16 @@ use cc_utils::errors::{CliError, ErrorResponse};
 use cc_utils::results::CResult;
 
 pub use c3a_common::PREREGISTER_HEADER;
-pub use c3a_common::{Email, Keypair, TokenTriple};
-pub use c3a_common::{
-  pack_cert, pack_into as pack_triple, sign_raw, unpack_cert, unpack_from as unpack_triple, verify_raw,
-};
+pub use c3a_common::{Email, SignKeypair, TokenTriple};
 
 pub(crate) mod utils;
 
 const LBRP_CBA_CERT: &str = "__lbrp_client_keypair";
 
 /// Gets or generates client-side keypair.
-pub fn client_keypair() -> CResult<Keypair> {
+pub fn client_keypair() -> CResult<SignKeypair> {
   if let Some(cert) = crate::utils::get_from_storage(LBRP_CBA_CERT)
-    && let Ok(keypair) = c3a_common::unpack_cert(cert)
+    && let Ok(keypair) = SignKeypair::unpack_keypair(cert)
   {
     Ok(keypair)
   } else {
@@ -29,9 +26,9 @@ pub fn client_keypair() -> CResult<Keypair> {
   }
 }
 
-fn generate_and_save() -> Keypair {
-  let keypair = c3a_common::generate_keypair();
-  crate::utils::put_in_storage(LBRP_CBA_CERT, &c3a_common::pack_cert(&keypair));
+fn generate_and_save() -> SignKeypair {
+  let keypair = SignKeypair::new_ed25519();
+  crate::utils::put_in_storage(LBRP_CBA_CERT, &keypair.pack_keypair());
   keypair
 }
 
@@ -105,7 +102,7 @@ impl LbrpAuthorize for reqwest::RequestBuilder {
       && let Some(challenge_state) = extract_header(&resp, lbrp_types::LBRP_CHALLENGE_STATE)
     {
       let keypair = client_keypair()?;
-      let sign = sign_raw(&challenge, &keypair);
+      let sign = keypair.sign_raw(&challenge);
 
       let resp2 = reqwest::Client::new()
         .post(endpoint.as_ref())

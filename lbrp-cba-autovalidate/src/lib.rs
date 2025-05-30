@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::todo, clippy::unimplemented)]
+
 use lbrp_cli_authorize::LbrpAuthorize;
 use wasm_bindgen::prelude::*;
 

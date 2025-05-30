@@ -1,4 +1,4 @@
-// #![deny(warnings, clippy::todo, clippy::unimplemented)]
+#![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![feature(let_chains, string_from_utf8_lossy_owned, stmt_expr_attributes)]
 
 #[cfg(feature = "c3a")]
