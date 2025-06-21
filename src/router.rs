@@ -4,7 +4,7 @@ use cc_server_kit::salvo::prelude::{Compression, CompressionLevel};
 use crate::config::{LbrpConfig, Service};
 use crate::cors_handling::CorsHandler;
 use crate::error_handling::{ERR_HANDLER, error_files_handler, error_index_handler, proxied_error_handler};
-use crate::proxy_client::ModifiedReqwestClient;
+use crate::proxy_client::{ModifiedReqwestClient, ProxyProvider};
 use crate::r#static::StaticRoute;
 
 pub fn excluded_from_err_handling(services: &[Service]) -> Vec<String> {
@@ -49,7 +49,7 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       .push(Router::new().path("/oops").get(error_index_handler));
 
     for file in &err_handler.static_files {
-      router = router.push(Router::new().path(format!("/{}", file)).get(error_files_handler));
+      router = router.push(Router::new().path(format!("/{file}")).get(error_files_handler));
     }
 
     let mut guard = ERR_HANDLER.as_ref().lock().await;
@@ -70,6 +70,12 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
         for (route, path) in &r#static.static_routes {
           service_router = service_router.push(Router::with_path(route).get(StaticRoute::new(path)));
         }
+      }
+
+      if let Some(header_name) = service.provide_ip_as_header.as_deref() {
+        service_router = service_router.hoop(ProxyProvider {
+          header_name: header_name.to_string(),
+        });
       }
 
       #[cfg(feature = "c3a")]

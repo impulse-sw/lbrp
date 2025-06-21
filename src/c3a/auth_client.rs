@@ -55,7 +55,7 @@ impl LbrpAuthMethods for C3AClient {
 
     let mut i = 1u16;
     let mut parts = vec![];
-    while let Some(part) = req.cookie(format!("{}-{}", prefix, i)) {
+    while let Some(part) = req.cookie(format!("{prefix}-{i}")) {
       parts.push(part.value().to_string());
       i += 1;
     }
@@ -64,9 +64,14 @@ impl LbrpAuthMethods for C3AClient {
 
   fn _remove_cookies(res: &mut Response, prefix: &str) {
     let mut i = 1u16;
-    while res.cookie(format!("{}-{}", prefix, i)).is_some() {
-      res.cookies_mut().remove(format!("{}-{}", prefix, i));
-      i += 1;
+    loop {
+      let name = format!("{prefix}-{i}");
+      if res.cookie(&name).is_some() {
+        res.cookies_mut().remove(name);
+        i += 1;
+      } else {
+        break;
+      }
     }
   }
 

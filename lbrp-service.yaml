@@ -4,10 +4,12 @@ server_port: 443
 ssl_crt_path: certs/fullchain.pem
 ssl_key_path: certs/privkey.pem
 allow_oapi_access: false
-log_level: info
-log_file_level: info
 otel_grpc_endpoint: http://127.0.0.1:4317
 otel_http_endpoint: http://127.0.0.1:9090/api/v1/otlp/v1/metrics
 otel_log_level: debug
 config_file: lbrp-config.json
 keyring_file: lbrp-keyring.json
+enable_io_logs: true
+enable_ecs_logs: true
+io_log_level: info
+ecs_log_level: info

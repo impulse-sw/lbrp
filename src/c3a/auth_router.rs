@@ -23,7 +23,7 @@ async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response)
     .map_err(|e| {
       ServerError::from_private(e)
         .with_private_str("Failed to perform the first step of a registration!")
-        .with_500()
+        .with_401()
     })?;
   res
     .add_header(c3a_common::PREREGISTER_HEADER, state, true)
@@ -49,7 +49,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
     .get(c3a_common::PREREGISTER_HEADER)
     .ok_or(ServerError::from_public("No preregistration state!").with_401())?
     .to_str()
-    .map_err(|e| ServerError::from_private(e).with_500())?
+    .map_err(|e| ServerError::from_private(e).with_401())?
     .to_string();
 
   let triple = auth_cli
@@ -66,7 +66,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
     .map_err(|e| {
       ServerError::from_private(e)
         .with_private_str("Failed to perform the second step of a registration!")
-        .with_500()
+        .with_401()
     })?;
 
   <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&triple, res);
@@ -90,7 +90,7 @@ async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<Login
     .map_err(|e| {
       ServerError::from_private(e)
         .with_private_str("Failed to perform the first step of signing in!")
-        .with_500()
+        .with_401()
     })?;
 
   json!(LoginResponse {
@@ -121,7 +121,7 @@ async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -
     .map_err(|e| {
       ServerError::from_private(e)
         .with_private_str("Failed to perform the second step of signing in!")
-        .with_500()
+        .with_401()
     })?;
 
   <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&triple, res);

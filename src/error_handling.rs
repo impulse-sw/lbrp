@@ -48,16 +48,15 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
     && let Some(filename) = handler
       .static_files
       .iter()
-      .map(|i| format!("/{}", i))
+      .map(|i| format!("/{i}"))
       .find(|el| el.as_str().eq(req.uri().path()))
       .map(|i| i.replace("/", ""))
   {
     let path = handler.dist_dir.join(&filename);
     tracing::debug!(
-      "Path: {:?}, handler's dist dir: {:?}, filename: {}",
+      "Path: {:?}, handler's dist dir: {:?}, filename: {filename}",
       path.as_path().to_string_lossy().to_string(),
-      handler.dist_dir,
-      filename
+      handler.dist_dir
     );
     file_upload!(path, filename)
   } else {
@@ -92,10 +91,7 @@ impl cc_server_kit::salvo::Handler for ErrHandler {
 
     let exclude_matched = if let Some(origin) = &origin
       && let Ok(origin) = origin.to_str()
-      && self
-        .excluded
-        .iter()
-        .any(|o| format!("https://{}", o).as_str().eq(origin))
+      && self.excluded.iter().any(|o| format!("https://{o}").as_str().eq(origin))
     {
       true
     } else {

@@ -12,10 +12,10 @@ mod r#static;
 
 use c3a::init_authcli;
 use cc_server_kit::cc_utils::prelude::*;
-use cc_server_kit::generic_setup::StartupVariant;
 use cc_server_kit::prelude::*;
 use cc_server_kit::salvo::affix_state;
 use cc_server_kit::salvo::server::ServerHandle;
+use cc_server_kit::setup::StartupVariant;
 use cc_server_kit::startup::{get_root_router_autoinject, start_force_https_redirect, start_with_service};
 use serde::Deserialize;
 use std::time::Duration;
@@ -48,7 +48,7 @@ async fn main() -> MResult<()> {
   let (reload_tx, _) = broadcast::channel::<()>(16);
 
   let setup = load_generic_config::<Setup>("lbrp-service").await.unwrap();
-  let state = load_generic_state(&setup).await.unwrap();
+  let state = load_generic_state(&setup, true).await.unwrap();
   let mut children = vec![];
 
   loop {
@@ -57,7 +57,7 @@ async fn main() -> MResult<()> {
     let config_file = setup.config_file.as_deref().unwrap_or("lbrp-config.json").to_owned();
     let watcher_handle = tokio::spawn(async move {
       if let Err(e) = config_watcher(config_file, watcher_tx).await {
-        eprintln!("Config watcher error: {:?}", e);
+        eprintln!("Config watcher error: {e:?}");
       }
     });
 

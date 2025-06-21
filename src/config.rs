@@ -59,6 +59,7 @@ pub(crate) struct CommonService {
   pub(crate) to: String,
   pub(crate) cors_domains: Option<Vec<String>>,
   pub(crate) skip_err_handling: Option<bool>,
+  pub(crate) provide_ip_as_header: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -159,7 +160,7 @@ pub(crate) async fn config_watcher<P: AsRef<std::path::Path>>(
       Ok(event) if event.kind.is_modify() => {
         let _ = reload_tx.send(());
       }
-      Err(e) => println!("Watch error: {:?}", e),
+      Err(e) => println!("Watch error: {e:?}"),
       _ => {}
     }
   }

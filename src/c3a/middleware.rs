@@ -68,7 +68,6 @@ impl MaybeC3ARedirect {
               .with_500()
               .explicit_write(res)
               .await;
-            return;
           }
           Ok(html) => {
             let site = html

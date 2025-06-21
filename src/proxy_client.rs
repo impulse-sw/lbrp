@@ -1,14 +1,11 @@
-use cc_server_kit::cc_utils::errors::ServerError;
-use cc_server_kit::salvo;
-use cc_server_kit::salvo::http::HeaderValue;
-use cc_server_kit::tracing;
+use cc_server_kit::prelude::*;
 use cc_server_kit::tracing::Instrument;
 use futures_util::TryStreamExt;
 use hyper::header::{CONNECTION, UPGRADE};
 use hyper::upgrade::OnUpgrade;
 use hyper::{HeaderMap, StatusCode};
 use reqwest::Client as ReqwestCli;
-use salvo::http::{ReqBody, ResBody};
+use salvo::http::{HeaderValue, ReqBody, ResBody};
 use salvo::hyper;
 use salvo::proxy::{Client as ProxyCli, Proxy, Upstreams};
 use salvo::rt::tokio::TokioIo;
@@ -18,6 +15,32 @@ use tokio::io::copy_bidirectional;
 pub(crate) struct ModifiedReqwestClient {
   inner: ReqwestCli,
   domain: String,
+}
+
+pub(crate) struct ProxyProvider {
+  pub header_name: String,
+}
+
+#[cc_server_kit::salvo::async_trait]
+impl cc_server_kit::salvo::Handler for ProxyProvider {
+  #[tracing::instrument(
+    skip_all,
+    name = "provide-ip-addr",
+    level = "debug",
+    fields(
+      http.uri = req.uri().path(),
+      http.method = req.method().as_str()
+    )
+  )]
+  async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
+    let from_ip = req.remote_addr().to_string();
+    let hname = self.header_name.clone();
+    req.headers_mut().insert(
+      Box::leak(hname.into_boxed_str()) as &str,
+      HeaderValue::from_str(&from_ip).unwrap(),
+    );
+    ctrl.call_next(req, depot, res).await;
+  }
 }
 
 #[allow(dead_code)]
@@ -63,11 +86,10 @@ fn get_upgrade_type(headers: &HeaderMap) -> Option<&str> {
         .any(|e| e.trim() == UPGRADE)
     })
     .unwrap_or(false)
+    && let Some(upgrade_value) = headers.get(&UPGRADE)
   {
-    if let Some(upgrade_value) = headers.get(&UPGRADE) {
-      tracing::debug!("Found upgrade header with value: {:?}", upgrade_value.to_str());
-      return upgrade_value.to_str().ok();
-    }
+    tracing::debug!("Found upgrade header with value: {:?}", upgrade_value.to_str());
+    return upgrade_value.to_str().ok();
   }
 
   None

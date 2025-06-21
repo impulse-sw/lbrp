@@ -1,5 +1,5 @@
 project_name: lbrp
-version: 4
+version: 5
 langs:
   - rust
 targets:
@@ -11,12 +11,9 @@ targets:
 cache_files:
   - .git
   - Cargo.lock
-  - target
   - lbrp-auth-frontend/dist
   - lbrp-cba-autovalidate/pkg
-artifacts:
-  - target/release/lbrp
-  - lbrp-keyring.json
+  - target
 variables:
   - title: lbrp-adm-pass
     is_secret: true
@@ -30,20 +27,23 @@ variables:
       type: from_env_file
       env_file_path: .env
       key: LBRP_C3A_ADMCDPUB
-place_artifacts_into_project_root:
-  - from: target/release/lbrp
-    to: lbrp
-  - from: lbrp-keyring.json
-    to: ../lbrp-keyring.json
 pipelines:
-  - title: deploy
+  - title: build
     desc: Got from `LBRP Pipeline`.
     info: lbrp@0.1.0
     tags:
       - cargo
       - upx
       - reqwest
-    default: false
+    default: true
+    artifacts:
+      - target/release/lbrp
+      - lbrp-keyring.json
+    artifacts_placements:
+      - from: target/release/lbrp
+        to: lbrp
+      - from: lbrp-keyring.json
+        to: ../lbrp-keyring.json
     actions:
       - title: Lint
         info: cargo-clippy@0.1.0
@@ -183,6 +183,20 @@ pipelines:
                         value:
                           type: plain
                           value: target/release/lbrp
+  - title: run
+    desc: ""
+    info: run@0.1.0
+    tags: []
+    default: true
+    artifacts:
+      - target/release/lbrp
+      - lbrp-keyring.json
+    artifacts_placements:
+      - from: target/release/lbrp
+        to: lbrp
+      - from: lbrp-keyring.json
+        to: ../lbrp-keyring.json
+    actions:
       - title: Run LBRP
         info: run-lbrp@0.1.0
         tags:
