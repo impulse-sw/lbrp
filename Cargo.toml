@@ -33,7 +33,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.7"
+version = "0.2.8"
 edition = "2024"
 authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 
@@ -41,13 +41,13 @@ authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 lbrp-cli-authorize = { path = "lbrp-cli-authorize" }
 lbrp-types = { path = "lbrp-types" }
 
-c3a-common = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.6", default-features = false }
-c3a-client-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.6" }
-c3a-server-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.6" }
-cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.10.0", default-features = false }
-cc-static-server = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.10.0" }
-cc-ui-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.10.0" }
-cc-utils = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.10.0", default-features = false }
+c3a-common = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.8", default-features = false }
+c3a-client-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.8" }
+c3a-server-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.8" }
+cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0", default-features = false }
+cc-static-server = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0" }
+cc-ui-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0" }
+cc-utils = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 hex = "0.4"
 icondata = { version = "0.5", default-features = false }
@@ -66,10 +66,11 @@ wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
 web-sys = { version = "0.3" }
 
-[profile.wasm]
-inherits = "release"
-codegen-units = 1
-lto = true
+[profile.release]
 opt-level = "z"
+debug = false
+lto = true
+codegen-units = 1
 panic = "abort"
-strip = "debuginfo"
+strip = true
+incremental = false

@@ -37,9 +37,6 @@ pipelines:
       - reqwest
     default: true
     artifacts:
-      - target/release/lbrp
-      - lbrp-keyring.json
-    artifacts_placements:
       - from: target/release/lbrp
         to: lbrp
       - from: lbrp-keyring.json
@@ -87,8 +84,24 @@ pipelines:
             - rust
           commands:
             - bash_c: cd lbrp-auth-frontend && tailwindcss -i ./input.css -o ./public/tailwind.css --minify
-            - bash_c: RUSTFLAGS='--cfg getrandom_backend="wasm_js" -Zlocation-detail=none' trunk build --release --config lbrp-auth-frontend/Trunk.toml
-            - bash_c: wasm-opt -Oz --all-features -o {file} {file}
+            - bash_c: >
+                RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -Zlocation-detail=none -Zfmt-debug=none" 
+                CARGO_UNSTABLE_BUILD_STD="std,panic_abort" 
+                CARGO_UNSTABLE_BUILD_STD_FEATURES="optimize_for_size,panic_immediate_abort" 
+                trunk build --release --config lbrp-auth-frontend/Trunk.toml
+            - bash_c: wasm-strip {file}
+              placeholders:
+                - "{file}"
+              replacements:
+                - group:
+                    - from: "{file}"
+                      to:
+                        title: wasm-project-file
+                        is_secret: false
+                        value:
+                          type: plain
+                          value: lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm
+            - bash_c: wasm-opt -Oz --all-features --strip-debug -o {file} {file}
               placeholders:
                 - "{file}"
               replacements:
@@ -115,9 +128,25 @@ pipelines:
           commands:
             - bash_c: mkdir -p target/wasm32-unknown-unknown/wasm
             - bash_c: ln -sfn "$(pwd)/target/wasm32-unknown-unknown/wasm" target/wasm32-unknown-unknown/debug
-            - bash_c: cd lbrp-cba-autovalidate && RUSTFLAGS='--cfg getrandom_backend="wasm_js" -Zlocation-detail=none' wasm-pack build --dev --target web --profile wasm
-            - bash_c: wasm-strip lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate_bg.wasm
-            - bash_c: wasm-opt -Oz --all-features -o {file} {file}
+            - bash_c: >
+                cd lbrp-cba-autovalidate && 
+                RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -Zlocation-detail=none -Zfmt-debug=none" 
+                CARGO_UNSTABLE_BUILD_STD="std,panic_abort" 
+                CARGO_UNSTABLE_BUILD_STD_FEATURES="optimize_for_size,panic_immediate_abort" 
+                wasm-pack build --release --no-pack --no-opt --target web
+            - bash_c: wasm-strip {file}
+              placeholders:
+                - "{file}"
+              replacements:
+                - group:
+                    - from: "{file}"
+                      to:
+                        title: wasm-project-file
+                        is_secret: false
+                        value:
+                          type: plain
+                          value: lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate_bg.wasm
+            - bash_c: wasm-opt -Oz --all-features --strip-debug -o {file} {file}
               placeholders:
                 - "{file}"
               replacements:
@@ -161,37 +190,16 @@ pipelines:
           supported_langs:
             - rust
           commands:
-            - bash_c: RUSTFLAGS='--cfg reqwest_unstable -C target-cpu=native' cargo build --release
-      - title: Compress LBRP
-        info: upx-compress@0.1.0
-        tags:
-          - upx
-        action:
-          type: post_build
-          supported_langs:
-            - any
-          commands:
-            - bash_c: upx <af>
-              placeholders:
-                - <af>
-              replacements:
-                - group:
-                    - from: <af>
-                      to:
-                        title: target/release/lbrp
-                        is_secret: false
-                        value:
-                          type: plain
-                          value: target/release/lbrp
+            - bash_c: >
+                RUSTFLAGS='--cfg reqwest_unstable -C target-cpu=native' 
+                CARGO_PROFILE_RELEASE_OPT_LEVEL=3 
+                cargo build --release
   - title: run
     desc: ""
     info: run@0.1.0
     tags: []
     default: true
     artifacts:
-      - target/release/lbrp
-      - lbrp-keyring.json
-    artifacts_placements:
       - from: target/release/lbrp
         to: lbrp
       - from: lbrp-keyring.json

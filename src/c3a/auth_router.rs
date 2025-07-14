@@ -152,7 +152,10 @@ pub(crate) fn auth_router() -> Router {
     .push(Router::with_path("/sign-in-step2").post(login_step2))
     .push(Router::with_path("/checkup").post(check_auth))
     .push(Router::with_path("/revalidate").post(request_client_token))
-    .push(cc_static_server::frontend_router_from_given_dist(
-      &std::path::PathBuf::from("lbrp-auth-frontend/dist/--inner-lbrp-auth"),
-    ))
+    .push(
+      cc_static_server::frontend_router_from_given_dist(&std::path::PathBuf::from(
+        "lbrp-auth-frontend/dist/--inner-lbrp-auth",
+      ))
+      .unwrap(),
+    )
 }
