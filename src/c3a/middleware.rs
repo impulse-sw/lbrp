@@ -130,6 +130,7 @@ impl cc_server_kit::salvo::Handler for MaybeC3ARedirect {
         "/--inner-lbrp-auth/lbrp_cba_autovalidate.js",
         "/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm",
         "/--inner-lbrp-auth/tailwind.css",
+        "/favicon.ico",
       ]
       .contains(&req.uri().path())
       {
