@@ -94,6 +94,7 @@ impl LbrpAuthMethods for C3AClient {
   }
 
   fn _remove_cookies(res: &mut Response, prefix: &str) {
+    res.cookies_mut().remove(prefix.to_owned());
     let mut i = 1u16;
     loop {
       let name = format!("{prefix}-{i}");

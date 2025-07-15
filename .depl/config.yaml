@@ -40,8 +40,6 @@ pipelines:
     artifacts:
       - from: target/release/lbrp
         to: lbrp
-      - from: lbrp-keyring.json
-        to: ../lbrp-keyring.json
     actions:
       - title: Lint
         info: cargo-clippy@0.1.0
