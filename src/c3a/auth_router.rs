@@ -69,7 +69,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
         .with_401()
     })?;
 
-  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&triple, res);
+  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&auth_cli.lifetimes(), &triple, res)?;
 
   json!(triple)
 }
@@ -124,7 +124,7 @@ async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -
         .with_401()
     })?;
 
-  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&triple, res);
+  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&auth_cli.lifetimes(), &triple, res)?;
 
   json!(triple)
 }

@@ -1,21 +1,41 @@
-use c3a_common::TokenTriple;
+use c3a_common::{TokenLifetimes, TokenTriple};
 use c3a_server_sdk::{
   C3AClient, C3AClientError,
   c3a_common::{self, AppTag},
 };
-use cc_server_kit::{prelude::*, salvo::http::cookie::CookieBuilder};
+use cc_server_kit::{
+  prelude::*,
+  salvo::http::cookie::{CookieBuilder, time::OffsetDateTime},
+};
+
+fn take_exp_from_duration(duration: chrono::TimeDelta) -> MResult<chrono::DateTime<chrono::Utc>> {
+  let curr_time = chrono::Utc::now();
+  curr_time
+    .checked_add_signed(duration)
+    .ok_or(ServerError::from_private_str("No way to add duration to current time").with_500())
+}
 
 pub(crate) trait LbrpAuthMethods {
   fn _cookie<'a>(
     name: impl Into<std::borrow::Cow<'a, str>>,
     value: impl Into<std::borrow::Cow<'a, str>>,
-  ) -> cc_server_kit::salvo::http::cookie::Cookie<'a>;
-  fn _deploy_cookie<'a>(res: &'a mut Response, prefix: &'a str, value: &'a str);
+    lifetime: chrono::DateTime<chrono::Utc>,
+  ) -> MResult<cc_server_kit::salvo::http::cookie::Cookie<'a>>;
+  fn _deploy_cookie<'a>(
+    res: &'a mut Response,
+    prefix: &'a str,
+    value: &'a str,
+    lifetime: chrono::DateTime<chrono::Utc>,
+  ) -> MResult<()>;
   fn _collect_cookies(req: &Request, prefix: &str) -> String;
   fn _remove_cookies(res: &mut Response, prefix: &str);
   fn _try_collect_from_cookies(req: &Request) -> Option<TokenTriple>;
   fn _try_collect(req: &Request) -> Result<TokenTriple, C3AClientError>;
-  fn deploy_triple_to_cookies(triple: &TokenTriple, res: &mut Response);
+  fn deploy_triple_to_cookies(
+    token_lifetimes: &TokenLifetimes,
+    triple: &TokenTriple,
+    res: &mut Response,
+  ) -> MResult<()>;
   async fn check_signed_in(&self, req: &mut Request, res: &mut Response) -> MResult<c3a_server_sdk::AuthorizeResponse>;
   async fn check_authorized_to(
     &self,
@@ -33,19 +53,30 @@ impl LbrpAuthMethods for C3AClient {
   fn _cookie<'a>(
     name: impl Into<std::borrow::Cow<'a, str>>,
     value: impl Into<std::borrow::Cow<'a, str>>,
-  ) -> cc_server_kit::salvo::http::cookie::Cookie<'a> {
-    CookieBuilder::new(name, value)
-      .path("/")
-      .secure(true)
-      .http_only(true)
-      .build()
+    lifetime: chrono::DateTime<chrono::Utc>,
+  ) -> MResult<cc_server_kit::salvo::http::cookie::Cookie<'a>> {
+    Ok(
+      CookieBuilder::new(name, value)
+        .path("/")
+        .secure(true)
+        .http_only(true)
+        .expires(OffsetDateTime::from_unix_timestamp(lifetime.timestamp()).map_err(ServerError::from_private)?)
+        .build(),
+    )
   }
 
-  fn _deploy_cookie<'a>(res: &'a mut Response, prefix: &'a str, value: &'a str) {
+  fn _deploy_cookie<'a>(
+    res: &'a mut Response,
+    prefix: &'a str,
+    value: &'a str,
+    lifetime: chrono::DateTime<chrono::Utc>,
+  ) -> MResult<()> {
     res.add_cookie(<c3a_server_sdk::C3AClient as LbrpAuthMethods>::_cookie(
       prefix.to_string(),
       value.to_string(),
-    ));
+      lifetime,
+    )?);
+    Ok(())
   }
 
   fn _collect_cookies(req: &Request, prefix: &str) -> String {
@@ -100,12 +131,32 @@ impl LbrpAuthMethods for C3AClient {
     }
   }
 
-  fn deploy_triple_to_cookies(triple: &TokenTriple, res: &mut Response) {
-    <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_deploy_cookie(res, lbrp_types::LBRP_ACCESS, &triple.access);
-    <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_deploy_cookie(res, lbrp_types::LBRP_REFRESH, &triple.refresh);
+  fn deploy_triple_to_cookies(
+    token_lifetimes: &TokenLifetimes,
+    triple: &TokenTriple,
+    res: &mut Response,
+  ) -> MResult<()> {
+    <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_deploy_cookie(
+      res,
+      lbrp_types::LBRP_ACCESS,
+      &triple.access,
+      take_exp_from_duration(token_lifetimes.act_life())?,
+    )?;
+    <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_deploy_cookie(
+      res,
+      lbrp_types::LBRP_REFRESH,
+      &triple.refresh,
+      take_exp_from_duration(token_lifetimes.rft_life())?,
+    )?;
     if let Some(cba) = &triple.cba {
-      <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_deploy_cookie(res, lbrp_types::LBRP_CLIENT, cba);
+      <c3a_server_sdk::C3AClient as LbrpAuthMethods>::_deploy_cookie(
+        res,
+        lbrp_types::LBRP_CLIENT,
+        cba,
+        take_exp_from_duration(token_lifetimes.cba_life())?,
+      )?;
     }
+    Ok(())
   }
 
   /// Just checks if a user is authenticated.
@@ -149,12 +200,22 @@ impl LbrpAuthMethods for C3AClient {
         .unwrap();
     }
 
+    let tlft = self.lifetimes();
     if let Some(new_access_token) = &triple.new_access_token {
-      Self::_deploy_cookie(res, lbrp_types::LBRP_ACCESS, new_access_token);
+      Self::_deploy_cookie(
+        res,
+        lbrp_types::LBRP_ACCESS,
+        new_access_token,
+        take_exp_from_duration(tlft.act_life())?,
+      )?;
     }
-
     if let Some(new_cba_token) = &triple.new_cba_token {
-      Self::_deploy_cookie(res, lbrp_types::LBRP_CLIENT, new_cba_token);
+      Self::_deploy_cookie(
+        res,
+        lbrp_types::LBRP_CLIENT,
+        new_cba_token,
+        take_exp_from_duration(tlft.cba_life())?,
+      )?;
     }
 
     Ok(c3a_server_sdk::AuthorizeResponse {
@@ -194,12 +255,22 @@ impl LbrpAuthMethods for C3AClient {
         .unwrap();
     }
 
+    let tlft = self.lifetimes();
     if let Some(new_access_token) = &triple.new_access_token {
-      Self::_deploy_cookie(res, lbrp_types::LBRP_ACCESS, new_access_token);
+      Self::_deploy_cookie(
+        res,
+        lbrp_types::LBRP_ACCESS,
+        new_access_token,
+        take_exp_from_duration(tlft.act_life())?,
+      )?;
     }
-
     if let Some(new_cba_token) = &triple.new_cba_token {
-      Self::_deploy_cookie(res, lbrp_types::LBRP_CLIENT, new_cba_token);
+      Self::_deploy_cookie(
+        res,
+        lbrp_types::LBRP_CLIENT,
+        new_cba_token,
+        take_exp_from_duration(tlft.cba_life())?,
+      )?;
     }
 
     ok!()

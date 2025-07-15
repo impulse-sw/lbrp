@@ -10,6 +10,7 @@ targets:
       type: no
 cache_files:
   - .git
+  - '*.kate-swp'
   - Cargo.lock
   - lbrp-auth-frontend/dist
   - lbrp-cba-autovalidate/pkg
