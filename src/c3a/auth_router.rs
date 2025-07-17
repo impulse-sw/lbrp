@@ -1,14 +1,13 @@
-use c3a_server_sdk::{
-  AuthorizeResponse,
-  c3a_common::{self, AuthenticationStepApproval, TokenTriple},
+use c3a_server_sdk::c3a_common::{
+  self, ApplicationAuthorizeResponse, AuthenticationApproval, AuthenticationFlow, AuthenticationFlows, TokenBundle,
 };
 use cc_server_kit::prelude::*;
 use lbrp_types::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse};
 
-use crate::c3a::{auth_client::LbrpAuthMethods, extract_authcli};
+use crate::c3a::extract_authcli;
 
 #[handler]
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<RegisterResponse>> {
   let query = req.parse_json_simd::<RegisterRequest>().await.map_err(|e| {
     ServerError::from_private(e)
@@ -35,8 +34,8 @@ async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response)
 }
 
 #[handler]
-#[instrument(skip_all)]
-async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenTriple>> {
+#[tracing::instrument(skip_all)]
+async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenBundle>> {
   let query = req.parse_json_simd::<RegisterRequest>().await.map_err(|e| {
     ServerError::from_private(e)
       .with_public("Invalid register request!")
@@ -56,9 +55,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
     .perform_sign_up(
       c3a_common::Id::Nickname { nickname: query.id },
       state,
-      vec![vec![AuthenticationStepApproval::Password {
-        password: query.password,
-      }]],
+      AuthenticationFlows::new().with(AuthenticationFlow::new().with(AuthenticationApproval::password(query.password))),
       query.cdpub,
       query.cba_challenge_sign,
     )
@@ -69,13 +66,13 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
         .with_401()
     })?;
 
-  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&auth_cli.lifetimes(), &triple, res)?;
+  auth_cli.deploy_triple_to_cookies(&triple, res)?;
 
   json!(triple)
 }
 
 #[handler]
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<LoginResponse>> {
   let query = req.parse_json_simd::<LoginRequest>().await.map_err(|e| {
     ServerError::from_private(e)
@@ -99,8 +96,8 @@ async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<Login
 }
 
 #[handler]
-#[instrument(skip_all)]
-async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenTriple>> {
+#[tracing::instrument(skip_all)]
+async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<TokenBundle>> {
   let query = req.parse_json_simd::<LoginRequest>().await.map_err(|e| {
     ServerError::from_private(e)
       .with_public("Invalid login request!")
@@ -111,9 +108,7 @@ async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -
   let triple = auth_cli
     .perform_login(
       c3a_common::Id::Nickname { nickname: query.id },
-      vec![AuthenticationStepApproval::Password {
-        password: query.password,
-      }],
+      AuthenticationFlow::new().with(AuthenticationApproval::password(query.password)),
       query.cdpub,
       query.cba_challenge_sign,
     )
@@ -124,24 +119,26 @@ async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -
         .with_401()
     })?;
 
-  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::deploy_triple_to_cookies(&auth_cli.lifetimes(), &triple, res)?;
+  auth_cli.deploy_triple_to_cookies(&triple, res)?;
 
   json!(triple)
 }
 
 #[handler]
 #[allow(clippy::bind_instead_of_map)]
-async fn check_auth(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<Json<AuthorizeResponse>> {
+async fn check_auth(
+  depot: &mut Depot,
+  req: &mut Request,
+  res: &mut Response,
+) -> MResult<Json<ApplicationAuthorizeResponse>> {
   let auth_cli = extract_authcli(depot)?;
-  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::check_signed_in(auth_cli, req, res)
-    .await
-    .and_then(|v| json!(v))
+  auth_cli.check_signed_in(req, res).await.and_then(|v| json!(v))
 }
 
 #[handler]
 async fn request_client_token(depot: &mut Depot, req: &mut Request, res: &mut Response) -> MResult<OK> {
   let auth_cli = extract_authcli(depot)?;
-  <c3a_server_sdk::C3AClient as LbrpAuthMethods>::update_client_token(auth_cli, req, res).await
+  auth_cli.update_client_token(req, res).await
 }
 
 pub(crate) fn auth_router() -> Router {

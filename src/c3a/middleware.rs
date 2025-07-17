@@ -5,18 +5,16 @@ use futures_util::StreamExt;
 
 use crate::c3a::extract_authcli;
 
-use super::auth_client::LbrpAuthMethods;
-
 const AUTOUPDATER_INJECT_LINKS: &str = r#"<link rel="modulepreload" href="/--inner-lbrp-auth/lbrp_cba_autovalidate.js" crossorigin="anonymous"><link rel="preload" href="/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm" crossorigin="anonymous" as="fetch" type="application/wasm"></head"#;
 
 const AUTOUPDATER_INJECT_SCRIPT: &str = r#"<script type="module">import init, * as autoupdBindings from '/--inner-lbrp-auth/lbrp_cba_autovalidate.js'; const wasm = await init({ module_or_path: '/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm' }); window.autoupdBindings = autoupdBindings; autoupdBindings.cba_autovalidate();</script></body"#;
 
 pub(crate) struct MaybeC3ARedirect {
-  pub(crate) tags: Vec<c3a_common::AppTag>,
+  pub(crate) tags: Vec<c3a_common::AccessTag>,
 }
 
 impl MaybeC3ARedirect {
-  pub(crate) fn new(tags: Vec<c3a_common::AppTag>) -> Self {
+  pub(crate) fn new(tags: Vec<c3a_common::AccessTag>) -> Self {
     Self { tags }
   }
 
@@ -89,7 +87,7 @@ impl MaybeC3ARedirect {
 impl cc_server_kit::salvo::Handler for MaybeC3ARedirect {
   async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
     if let Ok(auth_cli) = extract_authcli(depot) {
-      if let Ok(resp) = <c3a_server_sdk::C3AClient as LbrpAuthMethods>::check_signed_in(auth_cli, req, res).await
+      if let Ok(resp) = auth_cli.check_signed_in(req, res).await
         && resp.authorized
       {
         if let Ok(tags) = auth_cli
@@ -99,8 +97,7 @@ impl cc_server_kit::salvo::Handler for MaybeC3ARedirect {
           .await
         {
           tracing::debug!("Signed in, tags: {:?}", tags);
-          if let Ok(resp) =
-            <c3a_server_sdk::C3AClient as LbrpAuthMethods>::check_authorized_to(auth_cli, req, res, &self.tags).await
+          if let Ok(resp) = auth_cli.check_authorized_to(req, res, &self.tags).await
             && resp.authorized
           {
             tracing::debug!("AUTHORIZED FOR TAGS: {:?}", self.tags);

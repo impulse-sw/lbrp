@@ -5,7 +5,7 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-c3a-server-sdk = { workspace = true, optional = true, features = ["allow-unsafe-http"] }
+c3a-server-sdk = { workspace = true, optional = true, features = ["allow-unsafe-http", "cc-server-kit", "custom"] }
 cc-server-kit = { workspace = true, features = ["cors", "oapi", "otel", "http3", "proxy", "force-https", "reqwest-http3", "compression"] }
 cc-static-server = { workspace = true }
 chrono = { workspace = true }
@@ -34,7 +34,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.10"
+version = "0.2.11"
 edition = "2024"
 authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 
@@ -42,13 +42,13 @@ authors = ["Klimenty Titov <aclo.create@gmail.com>"]
 lbrp-cli-authorize = { path = "lbrp-cli-authorize" }
 lbrp-types = { path = "lbrp-types" }
 
-c3a-common = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.9-2", default-features = false }
-c3a-client-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.9-2" }
-c3a-server-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.1.9-2" }
-cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-1", default-features = false }
-cc-static-server = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-1" }
-cc-ui-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-1" }
-cc-utils = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-1", default-features = false }
+c3a-common = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.2.0", default-features = false }
+c3a-client-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.2.0" }
+c3a-server-sdk = { git = "ssh://git@31.31.65.38:20995/impulse-sw/c3a.git", tag = "0.2.0", default-features = false }
+cc-server-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-3", default-features = false }
+cc-static-server = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-3" }
+cc-ui-kit = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-3" }
+cc-utils = { git = "https://github.com/impulse-sw/cc-services.git", tag = "0.11.0-3", default-features = false }
 chrono = { version = "0.4" }
 futures-util = { version = "0.3", default-features = false }
 hex = "0.4"
@@ -64,6 +64,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha3 = "0.10"
 tokio = "1"
+tracing = "1"
 wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
 web-sys = { version = "0.3" }

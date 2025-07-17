@@ -6,5 +6,6 @@
 .directory
 .env
 Cargo.lock
+lbrp-authnz-config.json
 lbrp-config.json
 lbrp-keyring.json

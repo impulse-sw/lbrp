@@ -31,7 +31,6 @@ struct Setup {
   #[serde(flatten)]
   generic_values: GenericValues,
   config_file: Option<String>,
-  keyring_file: Option<String>,
 }
 
 impl GenericSetup for Setup {
@@ -84,9 +83,7 @@ async fn main() -> MResult<()> {
     };
 
     let lbrp_router = get_root_router_autoinject(&state, setup.clone())
-      .hoop(affix_state::inject(
-        init_authcli(setup.keyring_file.as_deref().unwrap_or("lbrp-keyring.json")).await?,
-      ))
+      .hoop(affix_state::inject(init_authcli().await?))
       .push(get_router_from_config(&config, &mut children).await);
 
     tracing::info!("Router:\n{:?}", lbrp_router);

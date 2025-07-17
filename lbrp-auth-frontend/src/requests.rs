@@ -1,6 +1,6 @@
 use cc_ui_kit::router::endpoint;
 use cc_utils::prelude::*;
-use lbrp_cli_authorize::LbrpAuthorize;
+use lbrp_cli_authorize::{CBAChallengeSign, LbrpAuthorize, TokenBundle};
 use lbrp_types::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse};
 
 pub(crate) async fn sign_up_step1(id: String) -> CResult<(String, Vec<u8>)> {
@@ -36,8 +36,8 @@ pub(crate) async fn sign_up_step2(
   password: String,
   state: String,
   cdpub: Vec<u8>,
-  cba_challenge_sign: Vec<u8>,
-) -> CResult<lbrp_cli_authorize::TokenTriple> {
+  cba_challenge_sign: CBAChallengeSign,
+) -> CResult<TokenBundle> {
   let triple = reqwest::Client::new()
     .post(endpoint("/--inner-lbrp-auth/sign-up-step2"))
     .header(lbrp_cli_authorize::PREREGISTER_HEADER, state)
@@ -52,7 +52,7 @@ pub(crate) async fn sign_up_step2(
     .map_err(CliError::from)?
     .error_for_status()
     .map_err(CliError::from)?
-    .json::<lbrp_cli_authorize::TokenTriple>()
+    .json::<TokenBundle>()
     .await
     .map_err(CliError::from)?;
 
@@ -84,8 +84,8 @@ pub(crate) async fn login_step2(
   id: String,
   password: String,
   cdpub: Vec<u8>,
-  cba_challenge_sign: Vec<u8>,
-) -> CResult<lbrp_cli_authorize::TokenTriple> {
+  cba_challenge_sign: CBAChallengeSign,
+) -> CResult<TokenBundle> {
   let triple = reqwest::Client::new()
     .post(endpoint("/--inner-lbrp-auth/sign-in-step2"))
     .json(&LoginRequest {
@@ -99,7 +99,7 @@ pub(crate) async fn login_step2(
     .map_err(CliError::from)?
     .error_for_status()
     .map_err(CliError::from)?
-    .json::<lbrp_cli_authorize::TokenTriple>()
+    .json::<TokenBundle>()
     .await
     .map_err(CliError::from)?;
 

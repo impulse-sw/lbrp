@@ -203,6 +203,8 @@ pipelines:
         to: lbrp
       - from: lbrp-keyring.json
         to: ../lbrp-keyring.json
+      - from: lbrp-authnz-config.json
+        to: ../lbrp-authnz-config.json
     actions:
       - title: Run LBRP
         info: run-lbrp@0.1.0

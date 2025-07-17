@@ -1,3 +1,4 @@
+use c3a_common::CBAChallengeSign;
 use serde::{Deserialize, Serialize};
 
 pub const LBRP_ACCESS: &str = "LBRP-Access";
@@ -12,7 +13,7 @@ pub struct LoginRequest {
   pub id: String,
   pub password: String,
   pub cdpub: Option<Vec<u8>>,
-  pub cba_challenge_sign: Option<Vec<u8>>,
+  pub cba_challenge_sign: Option<CBAChallengeSign>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

@@ -3,6 +3,7 @@
 
 use cc_ui_kit::prelude::*;
 use cc_ui_kit::router::{get_path, redirect};
+use lbrp_cli_authorize::CBAChallengeSign;
 
 mod requests;
 
@@ -74,9 +75,9 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
       };
 
       let keyring = lbrp_cli_authorize::client_keypair().unwrap();
-      let challenge_sign = keyring.sign_raw(&challenge);
+      let challenge_sign = CBAChallengeSign::new(keyring.sign_raw(&challenge));
 
-      if crate::requests::sign_up_step2(login, password, state, keyring.public(), challenge_sign.to_vec())
+      if crate::requests::sign_up_step2(login, password, state, keyring.public(), challenge_sign)
         .await
         .is_err()
       {
@@ -110,9 +111,9 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
       };
 
       let keyring = lbrp_cli_authorize::client_keypair().unwrap();
-      let challenge_sign = keyring.sign_raw(&challenge);
+      let challenge_sign = CBAChallengeSign::new(keyring.sign_raw(&challenge));
 
-      if crate::requests::login_step2(login, password, keyring.public(), challenge_sign.to_vec())
+      if crate::requests::login_step2(login, password, keyring.public(), challenge_sign)
         .await
         .is_err()
       {

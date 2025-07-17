@@ -9,7 +9,7 @@ use cc_utils::errors::{CliError, ErrorResponse};
 use cc_utils::results::CResult;
 
 pub use c3a_common::PREREGISTER_HEADER;
-pub use c3a_common::{Email, SignKeypair, TokenTriple};
+pub use c3a_common::{CBAChallengeSign, Email, SignKeypair, TokenBundle};
 
 pub(crate) mod utils;
 
@@ -27,7 +27,7 @@ pub fn client_keypair() -> CResult<SignKeypair> {
 }
 
 fn generate_and_save() -> SignKeypair {
-  let keypair = SignKeypair::new_ed25519();
+  let keypair = SignKeypair::new_ed25519().unwrap();
   crate::utils::put_in_storage(LBRP_CBA_CERT, &keypair.pack_keypair());
   keypair
 }
@@ -74,7 +74,7 @@ fn extract_header(resp: &reqwest::Response, header_name: impl AsRef<str>) -> Opt
 }
 
 fn auth_err_handler(builder: reqwest::RequestBuilder, bytes: &[u8]) -> CResult<reqwest::RequestBuilder> {
-  if let Ok(authorize_response) = serde_json::from_slice::<c3a_common::AuthorizeResponse>(bytes)
+  if let Ok(authorize_response) = serde_json::from_slice::<c3a_common::ApplicationAuthorizeResponse>(bytes)
     && authorize_response.authorized
   {
     Ok(builder.include_creds())
