@@ -30,7 +30,6 @@ variables:
       key: LBRP_C3A_ADMCDPUB
 pipelines:
   - title: build
-    desc: Got from `LBRP Pipeline`.
     info: lbrp@0.1.0
     tags:
       - cargo
@@ -194,7 +193,6 @@ pipelines:
                 CARGO_PROFILE_RELEASE_OPT_LEVEL=3 
                 cargo build --release
   - title: run
-    desc: ""
     info: run@0.1.0
     tags: []
     default: true
@@ -239,3 +237,69 @@ pipelines:
                         type: from_env_file
                         env_file_path: .env
                         key: LBRP_C3A_ADMCDPUB
+  - title: run-flame
+    info: run-flame@0.1.0
+    tags: []
+    default: false
+    artifacts:
+      # - from: lbrp-flame.svg
+      #   to: lbrp-flame.svg
+      - from: perf.data
+        to: perf.data
+    actions:
+      - title: Build LBRP for `perf` (debug)
+        info: cargo-build@0.1.0
+        tags:
+          - rust
+          - cargo
+        action:
+          type: build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: RUSTFLAGS='-C target-cpu=native' cargo build --release
+      - title: Run LBRP with `perf`
+        info: run-lbrp@0.1.0
+        tags:
+          - lbrp
+        exec_in_project_dir: false
+        action:
+          type: observe
+          command:
+            # bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' flamegraph -o lbrp-flame.svg -- ./target/debug/lbrp
+            bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' perf record -g --call-graph dwarf -- ./target/release/lbrp
+            ignore_fails: true
+            show_success_output: true
+            show_bash_c: false
+            placeholders:
+              - $1
+              - $2
+            replacements:
+              - group:
+                  - from: $1
+                    to:
+                      title: lbrp-adm-pass
+                      is_secret: true
+                      value:
+                        type: from_env_file
+                        env_file_path: .env
+                        key: LBRP_C3A_ADMP
+                  - from: $2
+                    to:
+                      title: lbrp-adm-kp
+                      is_secret: true
+                      value:
+                        type: from_env_file
+                        env_file_path: .env
+                        key: LBRP_C3A_ADMCDPUB
+      - title: Post-build
+        info: postbuild@0.1.0
+        tags:
+          - rust
+          - cargo
+        action:
+          type: build
+          supported_langs:
+            - rust
+          commands:
+            - bash_c: sudo chown titoffklim:titoffklim perf.data

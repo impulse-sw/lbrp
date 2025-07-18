@@ -38,7 +38,14 @@ impl MaybeC3ARedirect {
         tracing::debug!("Found stream; content length = {:?}", res.headers.get("Content-Length"));
         tracing::debug!("RESPONSE HEADERS: {:?}", res.headers());
         let mut stream = stream.into_inner();
-        let mut collected_bytes = Vec::new();
+        let mut collected_bytes = if let Some(cl) = res.headers.get("Content-Length")
+          && let Ok(sz) = cl.to_str()
+          && let Ok(sz) = sz.parse::<usize>()
+        {
+          Vec::with_capacity(sz)
+        } else {
+          Vec::new()
+        };
         while let Some(frame) = stream.next().await {
           tracing::debug!("Got new frame");
           match frame {

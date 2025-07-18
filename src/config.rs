@@ -1,6 +1,5 @@
 use cc_server_kit::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Serialize, Default)]
@@ -64,7 +63,7 @@ pub(crate) struct CommonService {
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct CommonStatic {
-  pub(crate) static_routes: HashMap<String, PathBuf>,
+  pub(crate) path: PathBuf,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]

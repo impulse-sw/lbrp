@@ -9,7 +9,7 @@ use salvo::http::{HeaderValue, ReqBody, ResBody};
 use salvo::hyper;
 use salvo::proxy::{Client as ProxyCli, Proxy, Upstreams};
 use salvo::rt::tokio::TokioIo;
-use tokio::io::copy_bidirectional;
+use tokio::io::copy_bidirectional_with_sizes;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ModifiedReqwestClient {
@@ -20,6 +20,8 @@ pub(crate) struct ModifiedReqwestClient {
 pub(crate) struct ProxyProvider {
   pub header_name: String,
 }
+
+const COPY_BIDIRECTIONAL_BUF_SIZE: usize = 16 * 1024 * 1024;
 
 #[cc_server_kit::salvo::async_trait]
 impl cc_server_kit::salvo::Handler for ProxyProvider {
@@ -117,13 +119,13 @@ impl ProxyCli for ModifiedReqwestClient {
       proxied_request
         .uri()
         .host()
-        .map(|v| v.to_string())
-        .unwrap_or("undefined".to_string()),
+        .unwrap_or("undefined"),
       proxied_request
         .uri()
         .port()
-        .map(|v| v.to_string())
-        .unwrap_or("undefined".to_string()),
+        .as_ref()
+        .map(|v| v.as_str())
+        .unwrap_or("undefined"),
     );
 
     proxied_request
@@ -161,7 +163,6 @@ impl ProxyCli for ModifiedReqwestClient {
       if request_upgrade_type == response_upgrade_type.map(|s| s.to_lowercase()) {
         let mut response_upgraded = response
           .upgrade()
-          .instrument(tracing::debug_span!("reqwest::response_upgrade"))
           .await
           .map_err(|e| {
             ServerError::from_private(e)
@@ -170,16 +171,15 @@ impl ProxyCli for ModifiedReqwestClient {
           })?;
         if let Some(request_upgraded) = request_upgraded {
           tokio::spawn(async move {
-            match request_upgraded
-              .instrument(tracing::debug_span!("reqwest::request_upgrade"))
-              .await
-            {
+            match request_upgraded.await {
               Ok(request_upgraded) => {
                 let mut request_upgraded = TokioIo::new(request_upgraded);
-                if let Err(e) = copy_bidirectional(&mut response_upgraded, &mut request_upgraded)
-                  .instrument(tracing::debug_span!("reqwest::bidirectional_copy"))
-                  .await
-                {
+                if let Err(e) = copy_bidirectional_with_sizes(
+                  &mut response_upgraded,
+                  &mut request_upgraded,
+                  COPY_BIDIRECTIONAL_BUF_SIZE,
+                  COPY_BIDIRECTIONAL_BUF_SIZE,
+                ).await {
                   tracing::error!(error = ?e, "copying between upgraded connections failed");
                 }
               }

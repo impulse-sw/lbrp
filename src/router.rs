@@ -5,7 +5,6 @@ use crate::config::{LbrpConfig, Service};
 use crate::cors_handling::CorsHandler;
 use crate::error_handling::{ERR_HANDLER, error_files_handler, error_index_handler, proxied_error_handler};
 use crate::proxy_client::{ModifiedReqwestClient, ProxyProvider};
-use crate::r#static::StaticRoute;
 
 pub fn excluded_from_err_handling(services: &[Service]) -> Vec<String> {
   services
@@ -52,8 +51,11 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       router = router.push(Router::new().path(format!("/{file}")).get(error_files_handler));
     }
 
+    let mut err_handler = err_handler.clone();
+    err_handler.static_files = err_handler.static_files.into_iter().map(|fp| format!("/{fp}")).collect::<_>();
+
     let mut guard = ERR_HANDLER.as_ref().lock().await;
-    *guard = Some(err_handler.clone());
+    *guard = Some(err_handler);
   }
 
   for service in &config.services {
@@ -63,14 +65,6 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       }
 
       let mut service_router = Router::new().host(service.from.clone());
-
-      if let Some(Service::CommonStatic(r#static)) =
-        &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_)))
-      {
-        for (route, path) in &r#static.static_routes {
-          service_router = service_router.push(Router::with_path(route).get(StaticRoute::new(path)));
-        }
-      }
 
       if let Some(header_name) = service.provide_ip_as_header.as_deref() {
         service_router = service_router.hoop(ProxyProvider {
@@ -99,6 +93,10 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       }
 
       service_router = service_router.push(rest_router);
+      if let Some(Service::CommonStatic(r#static)) = &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_))) {
+        service_router = service_router.push(cc_static_server::frontend_router_from_given_dist(&r#static.path).unwrap());
+      }
+
       router = router.push(service_router);
     }
   }

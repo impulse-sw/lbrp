@@ -8,7 +8,6 @@ mod cors_handling;
 mod error_handling;
 mod proxy_client;
 mod router;
-mod r#static;
 
 use c3a::init_authcli;
 use cc_server_kit::cc_utils::prelude::*;
@@ -17,10 +16,14 @@ use cc_server_kit::salvo::affix_state;
 use cc_server_kit::salvo::server::ServerHandle;
 use cc_server_kit::setup::StartupVariant;
 use cc_server_kit::startup::{get_root_router_autoinject, start_force_https_redirect, start_with_service};
+use mimalloc::MiMalloc;
 use serde::Deserialize;
 use std::time::Duration;
 use tokio::select;
 use tokio::sync::broadcast;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::config::{LbrpConfig, Service, config_watcher};
 use crate::error_handling::ErrHandler;
