@@ -23,6 +23,7 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 [features]
 default = ["c3a"]
 c3a = ["dep:c3a-server-sdk"]
+warn-about-incorrect-requests = []
 
 [workspace]
 members = [

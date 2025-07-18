@@ -24,6 +24,7 @@ pub(crate) async fn error_index_handler(req: &mut Request, res: &mut Response) {
   if let Some(path) = path
     && let Ok(data) = tokio::fs::read_to_string(path).await
   {
+    #[cfg(feature = "warn-about-incorrect-requests")]
     tracing::warn!(
       "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
       req.remote_addr(),
@@ -116,12 +117,14 @@ impl cc_server_kit::salvo::Handler for ErrHandler {
       }
       && let Ok(data) = tokio::fs::read_to_string(path).await
     {
+      #[cfg(feature = "warn-about-incorrect-requests")]
       tracing::warn!(
         "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
         req.remote_addr(),
         req.uri(),
         res.status_code,
       );
+
       res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
       res.render(salvo::writing::Text::Html(data));
       ctrl.skip_rest();
@@ -154,6 +157,7 @@ pub(crate) async fn proxied_error_handler(
     }
     && tokio::fs::try_exists(path).await.is_ok_and(|exists| exists)
   {
+    #[cfg(feature = "warn-about-incorrect-requests")]
     tracing::warn!(
       "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
       req.remote_addr(),
