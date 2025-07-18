@@ -70,6 +70,13 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
 
       let mut service_router = Router::new().host(service.from.clone());
 
+      if let Some(Service::CommonStatic(r#static)) =
+        &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_)))
+      {
+        service_router =
+          service_router.push(cc_static_server::frontend_router_from_given_dist(&r#static.path).unwrap());
+      }
+
       if let Some(header_name) = service.provide_ip_as_header.as_deref() {
         service_router = service_router.hoop(ProxyProvider {
           header_name: header_name.to_string(),
@@ -97,13 +104,6 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       }
 
       service_router = service_router.push(rest_router);
-      if let Some(Service::CommonStatic(r#static)) =
-        &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_)))
-      {
-        service_router =
-          service_router.push(cc_static_server::frontend_router_from_given_dist(&r#static.path).unwrap());
-      }
-
       router = router.push(service_router);
     }
   }
