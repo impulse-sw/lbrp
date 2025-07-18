@@ -64,6 +64,7 @@ pub(crate) struct CommonService {
 #[derive(Deserialize, Serialize)]
 pub(crate) struct CommonStatic {
   pub(crate) path: PathBuf,
+  pub(crate) static_routes: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
