@@ -52,7 +52,11 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
     }
 
     let mut err_handler = err_handler.clone();
-    err_handler.static_files = err_handler.static_files.into_iter().map(|fp| format!("/{fp}")).collect::<_>();
+    err_handler.static_files = err_handler
+      .static_files
+      .into_iter()
+      .map(|fp| format!("/{fp}"))
+      .collect::<_>();
 
     let mut guard = ERR_HANDLER.as_ref().lock().await;
     *guard = Some(err_handler);
@@ -93,8 +97,11 @@ pub async fn get_router_from_config(config: &LbrpConfig, children: &mut Vec<std:
       }
 
       service_router = service_router.push(rest_router);
-      if let Some(Service::CommonStatic(r#static)) = &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_))) {
-        service_router = service_router.push(cc_static_server::frontend_router_from_given_dist(&r#static.path).unwrap());
+      if let Some(Service::CommonStatic(r#static)) =
+        &config.services.iter().find(|v| matches!(v, Service::CommonStatic(_)))
+      {
+        service_router =
+          service_router.push(cc_static_server::frontend_router_from_given_dist(&r#static.path).unwrap());
       }
 
       router = router.push(service_router);

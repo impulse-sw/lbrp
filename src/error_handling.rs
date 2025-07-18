@@ -19,13 +19,10 @@ pub static ERR_HANDLER: std::sync::LazyLock<std::sync::Arc<tokio::sync::Mutex<Op
 pub(crate) async fn error_index_handler(req: &mut Request, res: &mut Response) {
   let path = {
     let guard = ERR_HANDLER.as_ref().lock().await;
-    if let Some(handler) = guard.as_ref() {
-      Some(handler.dist_dir.join("index.html"))
-    } else {
-      None
-    }
+    guard.as_ref().map(|handler| handler.dist_dir.join("index.html"))
   };
-  if let Some(path) = path && let Ok(data) = tokio::fs::read_to_string(path).await
+  if let Some(path) = path
+    && let Ok(data) = tokio::fs::read_to_string(path).await
   {
     tracing::warn!(
       "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
@@ -61,7 +58,9 @@ pub(crate) async fn error_files_handler(req: &mut Request) -> MResult<File> {
       (None, None)
     }
   };
-  if let Some(mut filename) = filename && let Some(dist_dir) = dist_dir {
+  if let Some(mut filename) = filename
+    && let Some(dist_dir) = dist_dir
+  {
     filename.remove(0);
     let path = dist_dir.join(&filename);
     tracing::debug!(
@@ -109,28 +108,23 @@ impl cc_server_kit::salvo::Handler for ErrHandler {
       false
     };
 
-    if !exclude_matched {
-      if res.status_code.is_none_or(|s| s.as_u16() >= 400u16)
-        && let Some(path) = {
-          let guard = ERR_HANDLER.as_ref().lock().await;
-          if let Some(handler) = guard.as_ref() {
-            Some(handler.dist_dir.join("index.html"))
-          } else {
-            None
-          }
-        }
-        && let Ok(data) = tokio::fs::read_to_string(path).await
-      {
-        tracing::warn!(
-          "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
-          req.remote_addr(),
-          req.uri(),
-          res.status_code,
-        );
-        res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
-        res.render(salvo::writing::Text::Html(data));
-        ctrl.skip_rest();
+    if !exclude_matched
+      && res.status_code.is_none_or(|s| s.as_u16() >= 400u16)
+      && let Some(path) = {
+        let guard = ERR_HANDLER.as_ref().lock().await;
+        guard.as_ref().map(|handler| handler.dist_dir.join("index.html"))
       }
+      && let Ok(data) = tokio::fs::read_to_string(path).await
+    {
+      tracing::warn!(
+        "From proxied request: remote addr: {:?}, requested URL: `{}`, status code {:?}",
+        req.remote_addr(),
+        req.uri(),
+        res.status_code,
+      );
+      res.status_code(res.status_code.unwrap_or(StatusCode::NOT_FOUND));
+      res.render(salvo::writing::Text::Html(data));
+      ctrl.skip_rest();
     }
   }
 }
@@ -156,11 +150,7 @@ pub(crate) async fn proxied_error_handler(
   if res.status_code.is_none_or(|s| s.as_u16() >= 400u16)
     && let Some(path) = {
       let guard = ERR_HANDLER.as_ref().lock().await;
-      if let Some(handler) = guard.as_ref() {
-        Some(handler.dist_dir.join("index.html"))
-      } else {
-        None
-      }
+      guard.as_ref().map(|handler| handler.dist_dir.join("index.html"))
     }
     && tokio::fs::try_exists(path).await.is_ok_and(|exists| exists)
   {

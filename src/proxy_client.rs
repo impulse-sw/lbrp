@@ -116,10 +116,7 @@ impl ProxyCli for ModifiedReqwestClient {
   ) -> Result<HyperResponse, Self::Error> {
     tracing::info!(
       r#"Redirect to "{}:{}""#,
-      proxied_request
-        .uri()
-        .host()
-        .unwrap_or("undefined"),
+      proxied_request.uri().host().unwrap_or("undefined"),
       proxied_request
         .uri()
         .port()
@@ -161,14 +158,11 @@ impl ProxyCli for ModifiedReqwestClient {
       let response_upgrade_type = get_upgrade_type(response.headers());
 
       if request_upgrade_type == response_upgrade_type.map(|s| s.to_lowercase()) {
-        let mut response_upgraded = response
-          .upgrade()
-          .await
-          .map_err(|e| {
-            ServerError::from_private(e)
-              .with_public("Can't upgrade response!")
-              .with_500()
-          })?;
+        let mut response_upgraded = response.upgrade().await.map_err(|e| {
+          ServerError::from_private(e)
+            .with_public("Can't upgrade response!")
+            .with_500()
+        })?;
         if let Some(request_upgraded) = request_upgraded {
           tokio::spawn(async move {
             match request_upgraded.await {
@@ -179,7 +173,9 @@ impl ProxyCli for ModifiedReqwestClient {
                   &mut request_upgraded,
                   COPY_BIDIRECTIONAL_BUF_SIZE,
                   COPY_BIDIRECTIONAL_BUF_SIZE,
-                ).await {
+                )
+                .await
+                {
                   tracing::error!(error = ?e, "copying between upgraded connections failed");
                 }
               }
