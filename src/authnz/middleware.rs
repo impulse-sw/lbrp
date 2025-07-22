@@ -1,20 +1,20 @@
-use c3a_server_sdk::c3a_common;
-use cc_server_kit::prelude::*;
-use cc_server_kit::{cc_utils::responses::ExplicitServerWrite, salvo::Writer};
+use authnz_server_sdk::authnz_common;
 use futures_util::StreamExt;
+use impulse_server_kit::prelude::*;
+use impulse_server_kit::{impulse_utils::responses::ExplicitServerWrite, salvo::Writer};
 
-use crate::c3a::extract_authcli;
+use crate::authnz::extract_authcli;
 
 const AUTOUPDATER_INJECT_LINKS: &str = r#"<link rel="modulepreload" href="/--inner-lbrp-auth/lbrp_cba_autovalidate.js" crossorigin="anonymous"><link rel="preload" href="/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm" crossorigin="anonymous" as="fetch" type="application/wasm"></head"#;
 
 const AUTOUPDATER_INJECT_SCRIPT: &str = r#"<script type="module">import init, * as autoupdBindings from '/--inner-lbrp-auth/lbrp_cba_autovalidate.js'; const wasm = await init({ module_or_path: '/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm' }); window.autoupdBindings = autoupdBindings; autoupdBindings.cba_autovalidate();</script></body"#;
 
 pub(crate) struct MaybeC3ARedirect {
-  pub(crate) tags: Vec<c3a_common::AccessTag>,
+  pub(crate) tags: Vec<authnz_common::AccessTag>,
 }
 
 impl MaybeC3ARedirect {
-  pub(crate) fn new(tags: Vec<c3a_common::AccessTag>) -> Self {
+  pub(crate) fn new(tags: Vec<authnz_common::AccessTag>) -> Self {
     Self { tags }
   }
 
@@ -90,15 +90,15 @@ impl MaybeC3ARedirect {
   }
 }
 
-#[cc_server_kit::salvo::async_trait]
-impl cc_server_kit::salvo::Handler for MaybeC3ARedirect {
+#[impulse_server_kit::salvo::async_trait]
+impl impulse_server_kit::salvo::Handler for MaybeC3ARedirect {
   async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
     if let Ok(auth_cli) = extract_authcli(depot) {
       if let Ok(resp) = auth_cli.check_signed_in(req, res).await
         && resp.authorized
       {
         if let Ok(tags) = auth_cli
-          .get_user_tags(c3a_common::Id::Nickname {
+          .get_user_tags(authnz_common::Id::Nickname {
             nickname: "archibald-host".to_string(),
           })
           .await

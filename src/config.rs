@@ -1,4 +1,4 @@
-use cc_server_kit::prelude::*;
+use impulse_server_kit::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -49,8 +49,8 @@ pub(crate) struct ErrorHandler {
 #[derive(Deserialize, Serialize)]
 pub(crate) struct CommonService {
   pub(crate) service_name: String,
-  #[cfg(feature = "c3a")]
-  pub(crate) require_subdomain_auth: Option<Vec<c3a_server_sdk::c3a_common::AccessTag>>,
+  #[cfg(feature = "authnz")]
+  pub(crate) require_subdomain_auth: Option<Vec<authnz_server_sdk::authnz_common::AccessTag>>,
   pub(crate) startup_cmd: Option<PathBuf>,
   pub(crate) working_dir: Option<PathBuf>,
   pub(crate) wait_after: Option<u64>,

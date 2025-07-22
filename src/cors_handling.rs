@@ -1,6 +1,6 @@
-use cc_server_kit::prelude::*;
-use cc_server_kit::salvo::hyper;
 use hyper::header::HeaderValue;
+use impulse_server_kit::prelude::*;
+use impulse_server_kit::salvo::hyper;
 
 use crate::config::CorsOpts;
 
@@ -18,8 +18,8 @@ impl CorsHandler {
   }
 }
 
-#[cc_server_kit::salvo::async_trait]
-impl cc_server_kit::salvo::Handler for CorsHandler {
+#[impulse_server_kit::salvo::async_trait]
+impl impulse_server_kit::salvo::Handler for CorsHandler {
   async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
     let origin = req.headers().get(hyper::header::ORIGIN).cloned();
     let cors_matched = if let Some(origin) = &origin

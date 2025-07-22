@@ -1,21 +1,21 @@
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![feature(let_chains, string_from_utf8_lossy_owned, stmt_expr_attributes)]
 
-#[cfg(feature = "c3a")]
-mod c3a;
+#[cfg(feature = "authnz")]
+mod authnz;
 mod config;
 mod cors_handling;
 mod error_handling;
 mod proxy_client;
 mod router;
 
-use c3a::init_authcli;
-use cc_server_kit::cc_utils::prelude::*;
-use cc_server_kit::prelude::*;
-use cc_server_kit::salvo::affix_state;
-use cc_server_kit::salvo::server::ServerHandle;
-use cc_server_kit::setup::StartupVariant;
-use cc_server_kit::startup::{get_root_router_autoinject, start_force_https_redirect, start_with_service};
+use authnz::init_authcli;
+use impulse_server_kit::impulse_utils::prelude::*;
+use impulse_server_kit::prelude::*;
+use impulse_server_kit::salvo::affix_state;
+use impulse_server_kit::salvo::server::ServerHandle;
+use impulse_server_kit::setup::StartupVariant;
+use impulse_server_kit::startup::{get_root_router_autoinject, start_force_https_redirect, start_with_service};
 use mimalloc::MiMalloc;
 use serde::Deserialize;
 use std::time::Duration;

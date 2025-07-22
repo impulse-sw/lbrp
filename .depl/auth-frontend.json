@@ -6,7 +6,7 @@
           "just": "lbrp-auth-frontend/dist/index.html"
         }
       ],
-      "patch_find_graph": [],
+      "patch_area": [],
       "replace": {
         "from_to": [
           "/lbrp-auth-frontend.js",
@@ -20,7 +20,7 @@
           "just": "lbrp-auth-frontend/dist/index.html"
         }
       ],
-      "patch_find_graph": [],
+      "patch_area": [],
       "replace": {
         "from_to": [
           "/lbrp-auth-frontend_bg.wasm",

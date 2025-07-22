@@ -1,5 +1,5 @@
-use cc_ui_kit::router::endpoint;
-use cc_utils::prelude::*;
+use impulse_ui_kit::router::endpoint;
+use impulse_utils::prelude::*;
 use lbrp_cli_authorize::{CBAChallengeSign, LbrpAuthorize, TokenBundle};
 use lbrp_types::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse};
 
@@ -20,7 +20,7 @@ pub(crate) async fn sign_up_step1(id: String) -> CResult<(String, Vec<u8>)> {
 
   let state = resp
     .headers()
-    .get(lbrp_cli_authorize::PREREGISTER_HEADER)
+    .get(lbrp_cli_authorize::SIGNUP_HINTS)
     .ok_or(CliError::from_str("Ошибка сервера"))?
     .to_str()
     .map_err(|e| CliError::from(e))?
@@ -40,7 +40,7 @@ pub(crate) async fn sign_up_step2(
 ) -> CResult<TokenBundle> {
   let triple = reqwest::Client::new()
     .post(endpoint("/--inner-lbrp-auth/sign-up-step2"))
-    .header(lbrp_cli_authorize::PREREGISTER_HEADER, state)
+    .header(lbrp_cli_authorize::SIGNUP_HINTS, state)
     .json(&RegisterRequest {
       id,
       password,

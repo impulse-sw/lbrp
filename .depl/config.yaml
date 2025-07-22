@@ -1,4 +1,4 @@
-project_name: lbrp
+project_name: impulse-lbrp
 version: 5
 langs:
   - rust
@@ -37,8 +37,8 @@ pipelines:
       - reqwest
     default: true
     artifacts:
-      - from: target/release/lbrp
-        to: lbrp
+      - from: target/release/impulse-lbrp
+        to: impulse-lbrp
     actions:
       - title: Lint
         info: cargo-clippy@0.1.0
@@ -197,8 +197,8 @@ pipelines:
     tags: []
     default: true
     artifacts:
-      - from: target/release/lbrp
-        to: lbrp
+      - from: target/release/impulse-lbrp
+        to: impulse-lbrp
       - from: lbrp-keyring.json
         to: ../lbrp-keyring.json
       - from: lbrp-authnz-config.json
@@ -212,7 +212,7 @@ pipelines:
         action:
           type: observe
           command:
-            bash_c: sudo LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' ./target/release/lbrp
+            bash_c: sudo LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' ./target/release/impulse-lbrp
             ignore_fails: true
             show_success_output: true
             show_bash_c: false
@@ -266,8 +266,8 @@ pipelines:
         action:
           type: observe
           command:
-            # bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' flamegraph -o lbrp-flame.svg -- ./target/debug/lbrp
-            bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' perf record -g --call-graph dwarf -- ./target/release/lbrp
+            # bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' flamegraph -o lbrp-flame.svg -- ./target/debug/impulse-lbrp
+            bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' perf record -g --call-graph dwarf -- ./target/release/impulse-lbrp
             ignore_fails: true
             show_success_output: true
             show_bash_c: false

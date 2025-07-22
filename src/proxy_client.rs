@@ -1,9 +1,9 @@
-use cc_server_kit::prelude::*;
-use cc_server_kit::tracing::Instrument;
 use futures_util::TryStreamExt;
 use hyper::header::{CONNECTION, UPGRADE};
 use hyper::upgrade::OnUpgrade;
 use hyper::{HeaderMap, StatusCode};
+use impulse_server_kit::prelude::*;
+use impulse_server_kit::tracing::Instrument;
 use reqwest::Client as ReqwestCli;
 use salvo::http::{HeaderValue, ReqBody, ResBody};
 use salvo::hyper;
@@ -23,8 +23,8 @@ pub(crate) struct ProxyProvider {
 
 const COPY_BIDIRECTIONAL_BUF_SIZE: usize = 16 * 1024 * 1024;
 
-#[cc_server_kit::salvo::async_trait]
-impl cc_server_kit::salvo::Handler for ProxyProvider {
+#[impulse_server_kit::salvo::async_trait]
+impl impulse_server_kit::salvo::Handler for ProxyProvider {
   #[tracing::instrument(
     skip_all,
     name = "provide-ip-addr",

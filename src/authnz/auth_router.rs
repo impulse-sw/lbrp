@@ -1,10 +1,10 @@
-use c3a_server_sdk::c3a_common::{
+use authnz_server_sdk::authnz_common::{
   self, ApplicationAuthorizeResponse, AuthenticationApproval, AuthenticationFlow, AuthenticationFlows, TokenBundle,
 };
-use cc_server_kit::prelude::*;
+use impulse_server_kit::prelude::*;
 use lbrp_types::{LoginRequest, LoginResponse, RegisterRequest, RegisterResponse};
 
-use crate::c3a::extract_authcli;
+use crate::authnz::extract_authcli;
 
 #[handler]
 #[tracing::instrument(skip_all)]
@@ -17,7 +17,7 @@ async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response)
   let auth_cli = extract_authcli(depot)?;
 
   let (requirements, state) = auth_cli
-    .prepare_sign_up(c3a_common::Id::Nickname { nickname: query.id })
+    .prepare_sign_up(authnz_common::Id::Nickname { nickname: query.id })
     .await
     .map_err(|e| {
       ServerError::from_private(e)
@@ -25,7 +25,7 @@ async fn sign_up_step1(depot: &mut Depot, req: &mut Request, res: &mut Response)
         .with_401()
     })?;
   res
-    .add_header(c3a_common::PREREGISTER_HEADER, state, true)
+    .add_header(authnz_common::SIGNUP_HINTS, state, true)
     .map_err(|e| ServerError::from_private(e).with_500())?;
 
   json!(RegisterResponse {
@@ -45,7 +45,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
 
   let state = req
     .headers()
-    .get(c3a_common::PREREGISTER_HEADER)
+    .get(authnz_common::SIGNUP_HINTS)
     .ok_or(ServerError::from_public("No preregistration state!").with_401())?
     .to_str()
     .map_err(|e| ServerError::from_private(e).with_401())?
@@ -53,7 +53,7 @@ async fn sign_up_step2(depot: &mut Depot, req: &mut Request, res: &mut Response)
 
   let triple = auth_cli
     .perform_sign_up(
-      c3a_common::Id::Nickname { nickname: query.id },
+      authnz_common::Id::Nickname { nickname: query.id },
       state,
       AuthenticationFlows::new().with(AuthenticationFlow::new().with(AuthenticationApproval::password(query.password))),
       query.cdpub,
@@ -82,7 +82,7 @@ async fn login_step1(depot: &mut Depot, req: &mut Request) -> MResult<Json<Login
   let auth_cli = extract_authcli(depot)?;
 
   let resp = auth_cli
-    .prepare_login(c3a_common::Id::Nickname { nickname: query.id })
+    .prepare_login(authnz_common::Id::Nickname { nickname: query.id })
     .await
     .map_err(|e| {
       ServerError::from_private(e)
@@ -107,7 +107,7 @@ async fn login_step2(depot: &mut Depot, req: &mut Request, res: &mut Response) -
 
   let triple = auth_cli
     .perform_login(
-      c3a_common::Id::Nickname { nickname: query.id },
+      authnz_common::Id::Nickname { nickname: query.id },
       AuthenticationFlow::new().with(AuthenticationApproval::password(query.password)),
       query.cdpub,
       query.cba_challenge_sign,
@@ -150,7 +150,7 @@ pub(crate) fn auth_router() -> Router {
     .push(Router::with_path("/checkup").post(check_auth))
     .push(Router::with_path("/revalidate").post(request_client_token))
     .push(
-      cc_static_server::frontend_router_from_given_dist(&std::path::PathBuf::from(
+      impulse_static_server::frontend_router_from_given_dist(&std::path::PathBuf::from(
         "lbrp-auth-frontend/dist/--inner-lbrp-auth",
       ))
       .unwrap(),

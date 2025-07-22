@@ -1,12 +1,12 @@
-use c3a_server_sdk::{
+use authnz_server_sdk::{
   ApplicationKeyring, AuthClient,
-  c3a_common::{
+  authnz_common::{
     self, AppAuthConfiguration, AuthenticationApproval, AuthenticationFlow, AuthenticationFlows, CBAChallengeSign,
     ClientBasedAuthorizationOpts, GeneralAuthenticationRequirement, IdenticationRequirement, SignInOpts, SignUpOpts,
     TokenLifetimes,
   },
 };
-use cc_server_kit::prelude::*;
+use impulse_server_kit::prelude::*;
 
 mod auth_router;
 mod middleware;
@@ -73,11 +73,11 @@ pub(crate) async fn init_authcli() -> MResult<AuthClient> {
 
   tracing::info!("Checking out for admin user...");
 
-  let id = c3a_common::Id::Nickname {
+  let id = authnz_common::Id::Nickname {
     nickname: "archibald-host".into(),
   };
   if auth_cli.check_user_exists(id.clone()).await.is_err() {
-    let ckeypair = c3a_common::SignKeypair::unpack_keypair(
+    let ckeypair = authnz_common::SignKeypair::unpack_keypair(
       std::env::var("LBRP_C3A_ADMCDPUB").map_err(|e| ServerError::from_private(e).with_500())?,
     )
     .map_err(|e| ServerError::from_private(e).with_500())?;

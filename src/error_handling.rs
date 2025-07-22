@@ -1,4 +1,4 @@
-use cc_server_kit::prelude::*;
+use impulse_server_kit::prelude::*;
 use salvo::{FlowCtrl, Response, http::ResBody};
 
 use crate::config::ErrorHandler;
@@ -85,8 +85,8 @@ impl ErrHandler {
   }
 }
 
-#[cc_server_kit::salvo::async_trait]
-impl cc_server_kit::salvo::Handler for ErrHandler {
+#[impulse_server_kit::salvo::async_trait]
+impl impulse_server_kit::salvo::Handler for ErrHandler {
   #[tracing::instrument(
     skip_all,
     name = "error-delivery",
@@ -97,7 +97,10 @@ impl cc_server_kit::salvo::Handler for ErrHandler {
     )
   )]
   async fn handle(&self, req: &mut Request, depot: &mut Depot, res: &mut Response, ctrl: &mut salvo::FlowCtrl) {
-    let origin = req.headers().get(cc_server_kit::salvo::hyper::header::ORIGIN).cloned();
+    let origin = req
+      .headers()
+      .get(impulse_server_kit::salvo::hyper::header::ORIGIN)
+      .cloned();
     ctrl.call_next(req, depot, res).await;
 
     let exclude_matched = if let Some(origin) = &origin

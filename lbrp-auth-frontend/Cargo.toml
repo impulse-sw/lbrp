@@ -5,12 +5,12 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-lbrp-cli-authorize = { workspace = true }
-cc-ui-kit = { workspace = true }
-cc-utils = { workspace = true, features = ["cresult", "reqwest"] }
 hex = { workspace = true }
-lbrp-types = { workspace = true }
 icondata = { workspace = true, features = ["lucide"] }
+impulse-ui-kit = { workspace = true }
+impulse-utils = { workspace = true, features = ["cresult", "reqwest"] }
+lbrp-cli-authorize = { workspace = true }
+lbrp-types = { workspace = true }
 leptos = { workspace = true, features = ["csr"] }
 leptos_icons = { workspace = true }
 reqwest = { workspace = true, features = ["json", "cookies", "multipart"] }

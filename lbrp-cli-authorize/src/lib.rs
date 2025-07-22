@@ -5,11 +5,11 @@
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![feature(let_chains)]
 
-use cc_utils::errors::{CliError, ErrorResponse};
-use cc_utils::results::CResult;
+use impulse_utils::errors::{CliError, ErrorResponse};
+use impulse_utils::results::CResult;
 
-pub use c3a_common::PREREGISTER_HEADER;
-pub use c3a_common::{CBAChallengeSign, Email, SignKeypair, TokenBundle};
+pub use authnz_common::SIGNUP_HINTS;
+pub use authnz_common::{CBAChallengeSign, Email, SignKeypair, TokenBundle};
 
 pub(crate) mod utils;
 
@@ -62,7 +62,7 @@ fn extract_and_decode_header(resp: &reqwest::Response, header_name: impl AsRef<s
     encoded
       .to_str()
       .ok()
-      .and_then(|str_encoded| c3a_common::base64_decode(str_encoded).ok())
+      .and_then(|str_encoded| authnz_common::base64_decode(str_encoded).ok())
   })
 }
 
@@ -74,7 +74,7 @@ fn extract_header(resp: &reqwest::Response, header_name: impl AsRef<str>) -> Opt
 }
 
 fn auth_err_handler(builder: reqwest::RequestBuilder, bytes: &[u8]) -> CResult<reqwest::RequestBuilder> {
-  if let Ok(authorize_response) = serde_json::from_slice::<c3a_common::ApplicationAuthorizeResponse>(bytes)
+  if let Ok(authorize_response) = serde_json::from_slice::<authnz_common::ApplicationAuthorizeResponse>(bytes)
     && authorize_response.authorized
   {
     Ok(builder.include_creds())
@@ -108,7 +108,7 @@ impl LbrpAuthorize for reqwest::RequestBuilder {
         .post(endpoint.as_ref())
         .include_creds()
         .header(lbrp_types::LBRP_CHALLENGE_STATE, challenge_state)
-        .header(lbrp_types::LBRP_CHALLENGE_SIGN, c3a_common::base64_encode(&sign))
+        .header(lbrp_types::LBRP_CHALLENGE_SIGN, authnz_common::base64_encode(&sign))
         .send()
         .await
         .map_err(CliError::from)?

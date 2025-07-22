@@ -1,4 +1,4 @@
-use c3a_common::CBAChallengeSign;
+use authnz_common::CBAChallengeSign;
 use serde::{Deserialize, Serialize};
 
 pub const LBRP_ACCESS: &str = "LBRP-Access";

@@ -1,8 +1,8 @@
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
 #![allow(non_snake_case)]
 
-use cc_ui_kit::prelude::*;
-use cc_ui_kit::router::{get_path, redirect};
+use impulse_ui_kit::prelude::*;
+use impulse_ui_kit::router::{get_path, redirect};
 use lbrp_cli_authorize::CBAChallengeSign;
 
 mod requests;
