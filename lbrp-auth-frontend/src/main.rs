@@ -5,7 +5,10 @@ use impulse_ui_kit::prelude::*;
 use impulse_ui_kit::router::{get_path, redirect};
 use lbrp_cli_authorize::CBAChallengeSign;
 
+mod components;
 mod requests;
+
+use crate::components::*;
 
 fn main() {
   let log_level = if cfg!(debug_assertions) {
@@ -35,7 +38,7 @@ fn AuthApp() -> impl IntoView {
   let page = RwSignal::new(String::new());
   Effect::new(move |_| {
     if let Some(auth) = authorized.get() {
-      if !*auth {
+      if !auth {
         *page.write() = "login".to_string();
       } else {
         redirect(get_path().unwrap()).unwrap();
@@ -44,12 +47,14 @@ fn AuthApp() -> impl IntoView {
   });
 
   view! {
-    <Show when=move || page.read().as_str().eq("")>
-      <FullscreenLoadingBox />
-    </Show>
-    <Show when=move || page.read().as_str().eq("login")>
-      <LoginPage authorized />
-    </Show>
+    <ThemeProvider>
+      <Show when=move || page.read().as_str().eq("")>
+        <FullscreenLoadingBox />
+      </Show>
+      <Show when=move || page.read().as_str().eq("login")>
+        <LoginPage authorized />
+      </Show>
+    </ThemeProvider>
   }
 }
 
@@ -140,20 +145,16 @@ pub(crate) fn LoginPage(authorized: LocalResource<bool>) -> impl IntoView {
         <p class="mb-4 text-xl text-gray-600 dark:text-gray-300 text-center">
           Сервисы Импульса
         </p>
-        <Space vertical=true>
-          <Input
-            value=login
-            input_type=InputType::Text
-            placeholder="Имя пользователя"
-          />
-          <Input value=password input_type=InputType::Password placeholder="Пароль" />
-          <Button block=true appearance=ButtonAppearance::Primary on_click=login_task>
+        <div class="flex flex-col gap-3">
+          <Input value=login r#type="email" attr:placeholder="Имя пользователя" />
+          <Input value=password r#type="password" attr:placeholder="Пароль" />
+          <Button variant=ButtonVariant::Default size=ButtonSize::Sm on:click=login_task>
             "Войти"
           </Button>
-          <Button block=true appearance=ButtonAppearance::Secondary on_click=sign_up_task>
+          <Button variant=ButtonVariant::Secondary size=ButtonSize::Sm on:click=sign_up_task>
             "Зарегистрироваться"
           </Button>
-        </Space>
+        </div>
       </div>
     </div>
   }

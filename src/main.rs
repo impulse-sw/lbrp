@@ -1,5 +1,5 @@
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
-#![feature(let_chains, string_from_utf8_lossy_owned, stmt_expr_attributes)]
+#![feature(string_from_utf8_lossy_owned, stmt_expr_attributes)]
 
 #[cfg(feature = "authnz")]
 mod authnz;

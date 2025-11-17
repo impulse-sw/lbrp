@@ -1,200 +1,384 @@
 project_name: impulse-lbrp
-version: 5
-langs:
-  - rust
-targets:
-  - arch: x86_64
-    os: linux
-    os_derivative: any
-    os_version:
-      type: no
-cache_files:
+version: 7
+ignore_files:
+  - "*.kate-swp"
   - .git
-  - '*.kate-swp'
   - Cargo.lock
   - lbrp-auth-frontend/dist
   - lbrp-cba-autovalidate/pkg
   - target
+cache_files:
+  - Cargo.lock
+  - target
 variables:
-  - title: lbrp-adm-pass
-    is_secret: true
+  component-button:
     value:
-      type: from_env_file
-      env_file_path: .env
-      key: LBRP_C3A_ADMP
-  - title: lbrp-adm-kp
+      type: plain
+      value: button
+  component-icon:
+    value:
+      type: plain
+      value: icon
+  component-input:
+    value:
+      type: plain
+      value: input
+  component-theme:
+    value:
+      type: plain
+      value: theme
+  file-auth-frontend-favicon:
+    value:
+      type: plain
+      value: impulse-error-pages/public/favicon.ico
+  file-auth-frontend-tw-input:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/input.css
+  file-auth-frontend-tw-output:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/tailwind.css
+  flags-lbrp:
+    value:
+      type: plain
+      value: 'RUSTFLAGS=''--cfg reqwest_unstable -C target-cpu=native'' CARGO_PROFILE_RELEASE_OPT_LEVEL=3 '
+  flags-reqwest:
+    value:
+      type: plain
+      value: 'RUSTFLAGS=''--cfg reqwest_unstable'' '
+  from-1:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/tailwind.css
+  from-2:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/lbrp-auth-frontend.js
+  from-3:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm
+  from-4:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/index.html
+  from-5:
+    value:
+      type: plain
+      value: lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate.js
+  from-6:
+    value:
+      type: plain
+      value: lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate_bg.wasm
+  lbrp-adm-kp:
     is_secret: true
     value:
       type: from_env_file
       env_file_path: .env
       key: LBRP_C3A_ADMCDPUB
+  lbrp-adm-pass:
+    is_secret: true
+    value:
+      type: from_env_file
+      env_file_path: .env
+      key: LBRP_C3A_ADMP
+  to-1:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/--inner-lbrp-auth/tailwind.css
+  to-2:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp-auth-frontend.js
+  to-3:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp-auth-frontend_bg.wasm
+  to-4:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/--inner-lbrp-auth/index.html
+  to-5:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp_cba_autovalidate.js
+  to-6:
+    value:
+      type: plain
+      value: lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm
+actions:
+  - info: cargo-fmt@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
+  - info: cargo-lint-with-flags@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: "{flags}cargo clippy"
+      placeholders:
+        - "{flags}"
+      show_success_output: true
+  - info: cargo-release@0.2.0
+    tags:
+      - rust
+      - cargo
+    requirements:
+      - type: exists_any
+        paths:
+          - /bin/cargo
+          - ~/.cargo/bin/cargo
+        desc: "Install `cargo` via your package manager or with this command: `curl https://sh.rustup.rs -sSf | sh`."
+    action:
+      type: staged
+      stage: build
+      cmd: "{flags}cargo build --release"
+      placeholders:
+        - "{flags}"
+  - info: copy@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: cp {from} {to}
+      placeholders:
+        - "{from}"
+        - "{to}"
+  - info: depl-use-component-from-storage@0.1.0
+    tags:
+      - deployer
+    requirements:
+      - type: exists_any
+        paths:
+          - /bin/depl
+          - /usr/bin/depl
+          - ~/.cargo/bin/depl
+          - ~/.local/bin/depl
+    exec_in_project_dir: true
+    skip_sync: false
+    action:
+      type: custom
+      cmd: depl use -o lbrp-auth-frontend/src/components ui-kit-{component-name}@
+      placeholders:
+        - "{component-name}"
+  - info: lbrp-ln-folders@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: ln -sfn "$(pwd)/target/wasm32-unknown-unknown/wasm" target/wasm32-unknown-unknown/debug
+  - info: lbrp-mk-inner-dist-folder@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: mkdir -p lbrp-auth-frontend/dist/--inner-lbrp-auth
+  - info: lbrp-mk-wasm-folder@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: mkdir -p target/wasm32-unknown-unknown/wasm
+  - info: lbrp-patch-frontend@0.1.0
+    action:
+      type: patch
+      patch: .depl/auth-frontend.json
+  - info: lbrp-run@0.1.0
+    action:
+      type: observe
+      cmd: sudo LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' ./target/release/impulse-lbrp
+      placeholders:
+        - $1
+        - $2
+      ignore_fails: true
+      show_success_output: true
+      show_cmd: false
+      only_when_fresh: false
+  - info: leptos-fmt@0.1.0
+    tags:
+      - leptos
+      - fmt
+    requirements:
+      - type: exists
+        path: ~/.cargo/bin/leptosfmt
+        desc: "Check this: https://github.com/bram209/leptosfmt"
+    exec_in_project_dir: true
+    action:
+      type: staged
+      stage: build
+      cmd: leptosfmt -t 2 ./**/*.rs
+  - info: move@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: mv {from} {to}
+      placeholders:
+        - "{from}"
+        - "{to}"
+  - info: tailwindcss-compile@0.2.0
+    tags:
+      - tailwind
+      - css
+    requirements:
+      - type: exists_any
+        paths:
+          - /usr/bin/tailwindcss
+          - ~/.local/bin/tailwindcss
+        desc: "Install TailwindCSS standalone client: https://github.com/tailwindlabs/tailwindcss/releases"
+      - type: exists
+        path: lbrp-auth-frontend/tw-animate.css
+        desc: "Download `tw-animate` manually from: https://raw.githubusercontent.com/Wombosvideo/tw-animate-css/refs/heads/main/src/tw-animate.css"
+    action:
+      type: staged
+      stage: build
+      cmd: tailwindcss -i {tw-input} -o {tw-output} --minify
+      placeholders:
+        - "{tw-input}"
+        - "{tw-output}"
+  - info: trunk-build-rel-lbrp@0.1.1
+    tags:
+      - trunk
+      - build
+      - wasm
+    requirements:
+      - type: exists
+        path: ~/.cargo/bin/trunk
+        desc: "Check the website: https://trunkrs.dev/"
+    action:
+      type: staged
+      stage: build
+      cmd: RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -Zunstable-options -Cpanic=immediate-abort -Zlocation-detail=none -Zfmt-debug=none" CARGO_UNSTABLE_BUILD_STD="std" CARGO_UNSTABLE_BUILD_STD_FEATURES="optimize_for_size" trunk build --release --config lbrp-auth-frontend/Trunk.toml
+  - info: wasm-opt@0.1.0
+    tags:
+      - wasm
+      - wasm-opt
+    requirements:
+      - type: exists_any
+        paths:
+          - /bin/wasm-opt
+          - ~/.local/bin/wasm-opt
+        desc: "Install `binaryen` package or download it from this: https://github.com/WebAssembly/binaryen/releases"
+    action:
+      type: staged
+      stage: build
+      cmd: wasm-opt -Oz --all-features --strip-debug -o {file} {file}
+      placeholders:
+        - "{file}"
+  - info: wasm-pack-autovalidator@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: cd lbrp-cba-autovalidate && RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -Zunstable-options -Cpanic=immediate-abort -Zlocation-detail=none -Zfmt-debug=none" CARGO_UNSTABLE_BUILD_STD="std" CARGO_UNSTABLE_BUILD_STD_FEATURES="optimize_for_size" wasm-pack build --release --no-pack --no-opt --target web
+  - info: wasm-strip@0.1.0
+    action:
+      type: staged
+      stage: build
+      cmd: wasm-strip {file}
+      placeholders:
+        - "{file}"
 pipelines:
   - title: build
-    info: lbrp@0.1.0
-    tags:
-      - cargo
-      - upx
-      - reqwest
-    default: true
+    info: lbrp-build@0.1.0
     artifacts:
       - from: target/release/impulse-lbrp
         to: impulse-lbrp
     actions:
+      - title: "Use component #1"
+        used: depl-use-component-from-storage@0.1.0
+        with:
+          "{component-name}": component-button
+      - title: "Use component #2"
+        used: depl-use-component-from-storage@0.1.0
+        with:
+          "{component-name}": component-input
+      - title: "Use component #3"
+        used: depl-use-component-from-storage@0.1.0
+        with:
+          "{component-name}": component-theme
+      - title: "Use component #4"
+        used: depl-use-component-from-storage@0.1.0
+        with:
+          "{component-name}": component-icon
       - title: Lint
-        info: cargo-clippy@0.1.0
-        tags:
-          - cargo
-          - clippy
-        action:
-          type: pre_build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: RUSTFLAGS='--cfg reqwest_unstable' cargo clippy
-      - title: Format
-        info: cargo-fmt@0.1.0
-        tags:
-          - rust
-          - cargo
-          - fmt
-        requirements:
-          - type: exists
-            path: ~/.cargo/bin/leptosfmt
-        exec_in_project_dir: true
-        action:
-          type: pre_build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: cd lbrp-auth-frontend && leptosfmt -t 2 ./**/*.rs
-            - bash_c: cargo fmt -- --config tab_spaces=2,max_width=120 */**/*.rs
+        used: cargo-lint-with-flags@0.1.0
+        with:
+          "{flags}": flags-reqwest
+      - title: "Format #1"
+        used: cargo-fmt@0.1.0
+      - title: "Format #2"
+        used: leptos-fmt@0.1.0
+      - title: Compile Tailwind
+        used: tailwindcss-compile@0.2.0
+        with:
+          "{tw-input}": file-auth-frontend-tw-input
+          "{tw-output}": file-auth-frontend-tw-output
       - title: Compile LBRP Auth Frontend
-        info: lbrp-auth-frontend@0.1.0
-        tags:
-          - rust
-          - css
-          - tailwind
-          - trunk
-        exec_in_project_dir: false
-        action:
-          type: build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: cd lbrp-auth-frontend && tailwindcss -i ./input.css -o ./public/tailwind.css --minify
-            - bash_c: >
-                RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -Zlocation-detail=none -Zfmt-debug=none" 
-                CARGO_UNSTABLE_BUILD_STD="std,panic_abort" 
-                CARGO_UNSTABLE_BUILD_STD_FEATURES="optimize_for_size,panic_immediate_abort" 
-                trunk build --release --config lbrp-auth-frontend/Trunk.toml
-            - bash_c: wasm-strip {file}
-              placeholders:
-                - "{file}"
-              replacements:
-                - group:
-                    - from: "{file}"
-                      to:
-                        title: wasm-project-file
-                        is_secret: false
-                        value:
-                          type: plain
-                          value: lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm
-            - bash_c: wasm-opt -Oz --all-features --strip-debug -o {file} {file}
-              placeholders:
-                - "{file}"
-              replacements:
-                - group:
-                    - from: "{file}"
-                      to:
-                        title: wasm-project-file
-                        is_secret: false
-                        value:
-                          type: plain
-                          value: lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm
-      - title: Compile LBRP CBA Autovalidator
-        info: lbrp-auth-frontend@0.1.0
-        tags:
-          - rust
-          - css
-          - tailwind
-          - trunk
-        exec_in_project_dir: false
-        action:
-          type: build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: mkdir -p target/wasm32-unknown-unknown/wasm
-            - bash_c: ln -sfn "$(pwd)/target/wasm32-unknown-unknown/wasm" target/wasm32-unknown-unknown/debug
-            - bash_c: >
-                cd lbrp-cba-autovalidate && 
-                RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -Zlocation-detail=none -Zfmt-debug=none" 
-                CARGO_UNSTABLE_BUILD_STD="std,panic_abort" 
-                CARGO_UNSTABLE_BUILD_STD_FEATURES="optimize_for_size,panic_immediate_abort" 
-                wasm-pack build --release --no-pack --no-opt --target web
-            - bash_c: wasm-strip {file}
-              placeholders:
-                - "{file}"
-              replacements:
-                - group:
-                    - from: "{file}"
-                      to:
-                        title: wasm-project-file
-                        is_secret: false
-                        value:
-                          type: plain
-                          value: lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate_bg.wasm
-            - bash_c: wasm-opt -Oz --all-features --strip-debug -o {file} {file}
-              placeholders:
-                - "{file}"
-              replacements:
-                - group:
-                    - from: "{file}"
-                      to:
-                        title: wasm-project-file
-                        is_secret: false
-                        value:
-                          type: plain
-                          value: lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate_bg.wasm
+        used: trunk-build-rel-lbrp@0.1.1
+      - title: Strip WASM
+        used: wasm-strip@0.1.0
+        with:
+          "{file}": from-3
+      - title: Optimize WASM
+        used: wasm-opt@0.1.0
+        with:
+          "{file}": from-3
+      - title: "Compile LBRP CBA Autovalidator #1"
+        used: lbrp-mk-wasm-folder@0.1.0
+      - title: "Compile LBRP CBA Autovalidator #2"
+        used: lbrp-ln-folders@0.1.0
+      - title: "Compile LBRP CBA Autovalidator #3"
+        used: wasm-pack-autovalidator@0.1.0
+      - title: "Strip WASM #2"
+        used: wasm-strip@0.1.0
+        with:
+          "{file}": from-6
+      - title: "Optimize WASM #2"
+        used: wasm-opt@0.1.0
+        with:
+          "{file}": from-6
       - title: Patch LBRP Auth Frontend
-        info: patch-lbrp-auth-frontend@0.1.0
-        tags: []
-        action:
-          type: patch
-          patch: .depl/auth-frontend.json
-      - title: Add dist files
-        info: add-tailwind-css-to-dist-folder@0.1.0
-        tags: []
-        exec_in_project_dir: false
-        action:
-          type: post_build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: mkdir -p lbrp-auth-frontend/dist/--inner-lbrp-auth
-            - bash_c: cp lbrp-auth-frontend/public/tailwind.css lbrp-auth-frontend/dist/--inner-lbrp-auth/tailwind.css
-            - bash_c: mv lbrp-auth-frontend/dist/lbrp-auth-frontend.js lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp-auth-frontend.js
-            - bash_c: mv lbrp-auth-frontend/dist/lbrp-auth-frontend_bg.wasm lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp-auth-frontend_bg.wasm
-            - bash_c: mv lbrp-auth-frontend/dist/index.html lbrp-auth-frontend/dist/--inner-lbrp-auth/index.html
-            - bash_c: mv lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate.js lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp_cba_autovalidate.js
-            - bash_c: mv lbrp-cba-autovalidate/pkg/lbrp_cba_autovalidate_bg.wasm lbrp-auth-frontend/dist/--inner-lbrp-auth/lbrp_cba_autovalidate_bg.wasm
+        used: lbrp-patch-frontend@0.1.0
+      - title: "Bundle dist #1"
+        used: lbrp-mk-inner-dist-folder@0.1.0
+      - title: "Bundle dist #2"
+        used: copy@0.1.0
+        with:
+          "{from}": file-auth-frontend-tw-output
+          "{to}": from-1
+      - title: "Bundle dist #3"
+        used: move@0.1.0
+        with:
+          "{from}": from-1
+          "{to}": to-1
+      - title: "Bundle dist #4"
+        used: move@0.1.0
+        with:
+          "{from}": from-2
+          "{to}": to-2
+      - title: "Bundle dist #5"
+        used: move@0.1.0
+        with:
+          "{from}": from-3
+          "{to}": to-3
+      - title: "Bundle dist #6"
+        used: move@0.1.0
+        with:
+          "{from}": from-4
+          "{to}": to-4
+      - title: "Bundle dist #7"
+        used: move@0.1.0
+        with:
+          "{from}": from-5
+          "{to}": to-5
+      - title: "Bundle dist #8"
+        used: move@0.1.0
+        with:
+          "{from}": from-6
+          "{to}": to-6
       - title: Build LBRP
-        info: cargo-rel@0.1.0
-        tags:
-          - rust
-          - cargo
-        action:
-          type: build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: >
-                RUSTFLAGS='--cfg reqwest_unstable -C target-cpu=native' 
-                CARGO_PROFILE_RELEASE_OPT_LEVEL=3 
-                cargo build --release
+        used: cargo-release@0.2.0
+        with:
+          "{flags}": flags-lbrp
   - title: run
-    info: run@0.1.0
-    tags: []
+    info: lbrp-run@0.1.0
     default: true
     artifacts:
       - from: target/release/impulse-lbrp
@@ -205,101 +389,7 @@ pipelines:
         to: ../lbrp-authnz-config.json
     actions:
       - title: Run LBRP
-        info: run-lbrp@0.1.0
-        tags:
-          - lbrp
-        exec_in_project_dir: false
-        action:
-          type: observe
-          command:
-            bash_c: sudo LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' ./target/release/impulse-lbrp
-            ignore_fails: true
-            show_success_output: true
-            show_bash_c: false
-            placeholders:
-              - $1
-              - $2
-            replacements:
-              - group:
-                  - from: $1
-                    to:
-                      title: lbrp-adm-pass
-                      is_secret: true
-                      value:
-                        type: from_env_file
-                        env_file_path: .env
-                        key: LBRP_C3A_ADMP
-                  - from: $2
-                    to:
-                      title: lbrp-adm-kp
-                      is_secret: true
-                      value:
-                        type: from_env_file
-                        env_file_path: .env
-                        key: LBRP_C3A_ADMCDPUB
-  - title: run-flame
-    info: run-flame@0.1.0
-    tags: []
-    default: false
-    artifacts:
-      # - from: lbrp-flame.svg
-      #   to: lbrp-flame.svg
-      - from: perf.data
-        to: perf.data
-    actions:
-      - title: Build LBRP for `perf` (debug)
-        info: cargo-build@0.1.0
-        tags:
-          - rust
-          - cargo
-        action:
-          type: build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: RUSTFLAGS='-C target-cpu=native' cargo build --release
-      - title: Run LBRP with `perf`
-        info: run-lbrp@0.1.0
-        tags:
-          - lbrp
-        exec_in_project_dir: false
-        action:
-          type: observe
-          command:
-            # bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' flamegraph -o lbrp-flame.svg -- ./target/debug/impulse-lbrp
-            bash_c: sudo RUST_BACKTRACE=full LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' perf record -g --call-graph dwarf -- ./target/release/impulse-lbrp
-            ignore_fails: true
-            show_success_output: true
-            show_bash_c: false
-            placeholders:
-              - $1
-              - $2
-            replacements:
-              - group:
-                  - from: $1
-                    to:
-                      title: lbrp-adm-pass
-                      is_secret: true
-                      value:
-                        type: from_env_file
-                        env_file_path: .env
-                        key: LBRP_C3A_ADMP
-                  - from: $2
-                    to:
-                      title: lbrp-adm-kp
-                      is_secret: true
-                      value:
-                        type: from_env_file
-                        env_file_path: .env
-                        key: LBRP_C3A_ADMCDPUB
-      - title: Post-build
-        info: postbuild@0.1.0
-        tags:
-          - rust
-          - cargo
-        action:
-          type: build
-          supported_langs:
-            - rust
-          commands:
-            - bash_c: sudo chown titoffklim:titoffklim perf.data
+        used: lbrp-run@0.1.0
+        with:
+          $1: lbrp-adm-pass
+          $2: lbrp-adm-kp

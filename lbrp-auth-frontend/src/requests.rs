@@ -14,19 +14,19 @@ pub(crate) async fn sign_up_step1(id: String) -> CResult<(String, Vec<u8>)> {
     })
     .send()
     .await
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .error_for_status()
-    .map_err(CliError::from)?;
+    .map_err(ClientError::from)?;
 
   let state = resp
     .headers()
     .get(lbrp_cli_authorize::SIGNUP_HINTS)
-    .ok_or(CliError::from_str("Ошибка сервера"))?
+    .ok_or(ClientError::from_str("Ошибка сервера"))?
     .to_str()
-    .map_err(|e| CliError::from(e))?
+    .map_err(|e| ClientError::from(e))?
     .to_string();
 
-  let resp = resp.json::<RegisterResponse>().await.map_err(CliError::from)?;
+  let resp = resp.json::<RegisterResponse>().await.map_err(ClientError::from)?;
 
   Ok((state, resp.challenge.unwrap()))
 }
@@ -49,12 +49,12 @@ pub(crate) async fn sign_up_step2(
     })
     .send()
     .await
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .error_for_status()
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .json::<TokenBundle>()
     .await
-    .map_err(CliError::from)?;
+    .map_err(ClientError::from)?;
 
   Ok(triple)
 }
@@ -70,12 +70,12 @@ pub(crate) async fn login_step1(id: String) -> CResult<Vec<u8>> {
     })
     .send()
     .await
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .error_for_status()
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .json::<LoginResponse>()
     .await
-    .map_err(CliError::from)?;
+    .map_err(ClientError::from)?;
 
   Ok(resp.challenge.unwrap())
 }
@@ -96,12 +96,12 @@ pub(crate) async fn login_step2(
     })
     .send()
     .await
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .error_for_status()
-    .map_err(CliError::from)?
+    .map_err(ClientError::from)?
     .json::<TokenBundle>()
     .await
-    .map_err(CliError::from)?;
+    .map_err(ClientError::from)?;
 
   Ok(triple)
 }

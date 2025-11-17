@@ -3,9 +3,8 @@
 //! This crate contains functions to work with client signatures and token persistance.
 
 #![deny(warnings, clippy::todo, clippy::unimplemented)]
-#![feature(let_chains)]
 
-use impulse_utils::errors::{CliError, ErrorResponse};
+use impulse_utils::errors::{ClientError, ErrorResponse};
 use impulse_utils::results::CResult;
 
 pub use authnz_common::SIGNUP_HINTS;
@@ -79,9 +78,9 @@ fn auth_err_handler(builder: reqwest::RequestBuilder, bytes: &[u8]) -> CResult<r
   {
     Ok(builder.include_creds())
   } else if let Ok(err_resp) = serde_json::from_slice::<ErrorResponse>(bytes) {
-    Err(CliError::from_str(err_resp.err))
+    Err(ClientError::from_str(err_resp.err))
   } else {
-    Err(CliError::from_str(format!(
+    Err(ClientError::from_str(format!(
       "Unknown error: `{:?}`",
       String::from_utf8_lossy(bytes)
     )))
@@ -96,7 +95,7 @@ impl LbrpAuthorize for reqwest::RequestBuilder {
       .include_creds()
       .send()
       .await
-      .map_err(CliError::from)?;
+      .map_err(ClientError::from)?;
 
     if let Some(challenge) = extract_and_decode_header(&resp, lbrp_types::LBRP_CHALLENGE)
       && let Some(challenge_state) = extract_header(&resp, lbrp_types::LBRP_CHALLENGE_STATE)
@@ -111,14 +110,14 @@ impl LbrpAuthorize for reqwest::RequestBuilder {
         .header(lbrp_types::LBRP_CHALLENGE_SIGN, authnz_common::base64_encode(&sign))
         .send()
         .await
-        .map_err(CliError::from)?
+        .map_err(ClientError::from)?
         .bytes()
         .await
-        .map_err(CliError::from)?;
+        .map_err(ClientError::from)?;
 
       return auth_err_handler(self, &resp2);
     }
 
-    auth_err_handler(self, resp.bytes().await.map_err(CliError::from)?.as_ref())
+    auth_err_handler(self, resp.bytes().await.map_err(ClientError::from)?.as_ref())
   }
 }
