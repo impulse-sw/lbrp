@@ -280,6 +280,8 @@ pipelines:
     artifacts:
       - from: target/release/impulse-lbrp
         to: impulse-lbrp
+      - from: lbrp-auth-frontend/dist
+        to: dist
     actions:
       - title: "Use component #1"
         used: depl-use-component-from-storage@0.1.0
@@ -383,6 +385,8 @@ pipelines:
     artifacts:
       - from: target/release/impulse-lbrp
         to: impulse-lbrp
+      - from: lbrp-auth-frontend/dist
+        to: dist
       - from: lbrp-keyring.json
         to: ../lbrp-keyring.json
       - from: lbrp-authnz-config.json
