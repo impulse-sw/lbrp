@@ -184,10 +184,10 @@ actions:
   - info: lbrp-run@0.1.0
     action:
       type: observe
-      cmd: sudo LBRP_C3A_ADMP='$1' LBRP_C3A_ADMCDPUB='$2' ./target/release/impulse-lbrp
-      placeholders:
-        - $1
-        - $2
+      cmd: sudo ./target/release/impulse-lbrp
+      env:
+        - LBRP_C3A_ADMP
+        - LBRP_C3A_ADMCDPUB
       ignore_fails: true
       show_success_output: true
       show_cmd: false
@@ -391,5 +391,5 @@ pipelines:
       - title: Run LBRP
         used: lbrp-run@0.1.0
         with:
-          $1: lbrp-adm-pass
-          $2: lbrp-adm-kp
+          LBRP_C3A_ADMP: lbrp-adm-pass
+          LBRP_C3A_ADMCDPUB: lbrp-adm-kp
